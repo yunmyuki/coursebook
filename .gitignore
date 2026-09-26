@@ -3,7 +3,7 @@ __pycache__/
 .env
 .env.*
 .course-cache/
-tmp/
+tmp/*
 output/
 *.zip
 node_modules/
