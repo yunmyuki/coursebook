@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Course Compiler · 双语学习空间</title>
+  <meta name="description" content="保留完整原讲义的双语课程阅读器，带有按需 AI 学习助手、高亮和个人笔记。">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="notion.css">
+  <script defer src="vendor/katex/katex.min.js"></script><script defer src="course-data.js"></script><script defer src="app.js"></script><script defer src="assistant.js"></script>
+</head>
+<body>
+<a class="skip" href="#reading">跳转到讲义</a>
+<header class="topbar">
+  <a class="brand" href="#" aria-label="Course Compiler 首页"><span class="brand-mark">▥</span><span>Course<span class="brand-light">Compiler</span></span></a>
+  <div class="top-course"><span id="top-title">我的课程</span><span class="top-divider">/</span><span class="muted">学习空间</span></div>
+  <div class="top-actions"><span class="offline"><i></i>离线可用</span><button id="export-btn" class="button subtle" title="导出与导入个人学习记录">导出笔记 <span>↗</span></button><button id="notebook-toggle" class="icon-button" aria-label="切换笔记栏">☷</button></div>
+</header>
+<div class="workspace">
+  <aside class="sidebar" id="sidebar" aria-label="课程目录">
+    <div class="course-label">YOUR LIBRARY</div><h1 id="course-title">Course</h1><p id="course-subtitle" class="course-subtitle"></p>
+    <button id="search-open" class="search-trigger"><span>⌕</span> 搜索原文与译文 <kbd>Ctrl K</kbd></button>
+    <div class="nav-tabs" role="tablist"><button class="active" id="outline-tab" role="tab" aria-selected="true">讲义目录</button><button id="topics-tab" role="tab" aria-selected="false">页面索引</button></div>
+    <div class="outline-tools"><span id="lecture-count"></span><button id="collapse-all" class="text-button">全部折叠</button></div>
+    <nav id="outline"></nav>
+    <div class="sidebar-footer"><div class="progress-label"><span>课程学习进度</span><strong id="progress-text">0%</strong></div><div class="progress-track"><div id="progress-fill"></div></div><div class="progress-sub" id="progress-sub"></div><button id="quality-open" class="quality-link">◈ 查看内容校验报告 <span>↗</span></button></div>
+  </aside>
+  <main id="reading" tabindex="-1">
+    <div class="reader-toolbar"><button id="sidebar-toggle" class="icon-button" aria-label="切换目录">☰</button><div id="breadcrumb" class="breadcrumb"></div><div class="mode-switch" role="group" aria-label="语言显示模式"><button data-mode="bilingual" class="active">双语</button><button data-mode="original">原文</button><button data-mode="translation">译文</button></div><button id="font-toggle" class="icon-button font-button" aria-label="调整字号">Aa</button></div>
+    <div class="reader-scroll" id="reader-scroll"><div class="reading-wrap"><div class="chapter-intro" id="chapter-intro"></div><div class="layer-key"><span><i class="source-dot"></i> ORIGINAL · 原讲义</span><span><i class="translation-dot"></i> TRANSLATION · 完整译文</span></div><div id="lecture-content"></div><div id="chapter-pagination"></div><footer class="reader-footer">COURSE COMPILER <span>原文有据 · 理解有迹</span></footer></div></div>
+  </main>
+  <aside id="notebook" class="notebook" aria-label="个人学习工作区">
+    <div class="notebook-heading"><div><span class="notebook-icon">▤</span><h2>Notebook</h2></div><button id="new-note" class="icon-button" aria-label="新建笔记">＋</button></div>
+    <p class="notebook-subtitle">让每一次理解，都有迹可循。</p>
+    <div class="notebook-tabs" role="tablist"><button data-tab="assistant" role="tab" class="active" aria-selected="true">AI 助手</button><button data-tab="notes" role="tab" aria-selected="false">笔记</button><button data-tab="highlights" role="tab" aria-selected="false">高亮</button><button data-tab="bookmarks" role="tab" aria-selected="false">书签</button></div>
+    <section id="note-editor" hidden><form id="note-form"><div class="dialog-heading"><h2 id="note-dialog-title">写下你的想法</h2><button type="button" class="icon-button" id="cancel-note" aria-label="关闭">×</button></div><div id="note-context" class="note-context"></div><label for="note-text" class="sr-only">笔记正文</label><textarea id="note-text" rows="7" required placeholder="记录想法、疑问，或把概念联系起来…" maxlength="20000"></textarea><div class="dialog-footer"><span>个人笔记</span><button class="button primary" type="submit">保存笔记</button></div></form></section><section id="assistant-panel" class="assistant-panel"></section><div class="notebook-scroll" id="notebook-content"></div>
+    <div class="notebook-bottom"><i></i><span id="learning-storage-label">个人记录保存在此浏览器</span> <button id="backup-open" class="text-button">备份</button></div>
+  </aside>
+</div>
+<div id="selection-menu" class="selection-menu" hidden><button data-selection="highlight">▰ 高亮</button><button data-selection="note">＋ 笔记</button><button data-selection="assistant">问助手</button></div>
+<dialog id="search-dialog" class="search-dialog"><div class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="搜索整门课程，中英文均可…" aria-label="搜索课程"><button class="icon-button" data-close="search-dialog" aria-label="关闭搜索">×</button></div><div id="search-results" class="search-results"></div><div class="dialog-footer">搜索所有讲义与译文 <kbd>Esc 关闭</kbd></div></dialog>
+
+<dialog id="source-dialog" class="source-dialog"><div class="dialog-heading"><h2 id="source-title">原始页面</h2><button class="icon-button" data-close="source-dialog" aria-label="关闭">×</button></div><div id="source-body"></div></dialog>
+<dialog id="export-dialog"><div class="dialog-heading"><h2>保存你的学习记录</h2><button class="icon-button" data-close="export-dialog" aria-label="关闭">×</button></div><p>备份笔记、高亮、书签与学习进度。跨浏览器或移动网站文件夹时，可导入备份继续学习。</p><div class="export-options"><button class="button primary" id="export-json">下载完整备份 · JSON</button><button class="button" id="export-md">下载个人笔记 · Markdown</button><label class="button import-label">导入备份<input id="import-records" type="file" accept=".json" hidden></label></div><p class="muted small">网站 ZIP 可在本地编译页面生成；导出的学习网站无需后台服务。</p></dialog>
+<dialog id="quality-dialog"><div class="dialog-heading"><h2>内容校验报告</h2><button class="icon-button" data-close="quality-dialog" aria-label="关闭">×</button></div><div id="quality-body"></div></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script defer src="review.js"></script>
+</body>
+</html>

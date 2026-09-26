@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');const {esc,highlighted,validRange,safeUrl,reanchorHighlight,cleanBullet}=require('../web/app.js');
+assert.equal(esc('<script>"&'),'&lt;script&gt;&quot;&amp;');
+assert.equal(highlighted('abcdef',[{start:1,end:4},{start:2,end:5}]),'a<mark class="user-highlight">bcd</mark><mark class="user-highlight">e</mark>f');
+assert.equal(highlighted('<img>',[{start:0,end:5}]),'<mark class="user-highlight">&lt;img&gt;</mark>');
+const saved={id:'h',start:0,end:4,text:'beta'};
+assert.equal(reanchorHighlight(saved,'The beta coefficient').start,4);
+const stale=reanchorHighlight(saved,'The alpha coefficient');assert.equal(stale.text,'beta');assert.equal(stale.stale,true);
+assert.equal(highlighted('The alpha coefficient',[stale]),'The alpha coefficient');
+assert.equal(reanchorHighlight(saved,'A beta versus beta').stale,true);
+assert.equal(reanchorHighlight(saved,cleanBullet('• beta',{type:'bullet'})).stale,false);
+assert.equal(validRange({start:-1,end:3},'abc'),false);assert.equal(safeUrl('javascript:alert(1)'),null);assert.equal(safeUrl('https://example.com'),'https://example.com');console.log('Reader helpers passed');

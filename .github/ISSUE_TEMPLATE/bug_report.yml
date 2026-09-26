@@ -1,0 +1,22 @@
+name: Bug report / 问题反馈
+description: Report a reproducible issue without private documents or API keys.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本与 Windows 版本
+      placeholder: Course Compiler 2.0.0 / Windows 11 x64
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤、预期结果和实际结果
+      description: 请使用自制示例描述，不要上传私人讲义或 API Key。
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: 可选的错误信息与截图
+      description: 提交前请移除密钥、文件路径中的个人信息及课程内容。
