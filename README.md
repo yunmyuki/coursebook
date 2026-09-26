@@ -16,15 +16,13 @@ PDF · PPTX · PPT → 完整原文 · 对照译文 · 原图表 · 按需 AI �
 
 coursebook 是一款本地课程编译与阅读应用。导入一门课的多份讲义，生成按原页顺序组织、可追溯来源的双语学习网站。课程和学习记录保存在你的电脑上；导出的静态网站无需应用或后端即可阅读。
 
-原名 Course Compiler，现统一使用 **coursebook**。当前源码与界面已采用新名称；已发布的 v2.0.0 安装包仍保留原名称和文件名。旧版下载链接、数据目录与学习记录继续兼容。
-
 它以**保留讲义信息**为目标：原文、译文与 AI 助手回答明确区分。解析结果可以对照原页复核，AI 不会用摘要替换讲义正文。
 
 ![coursebook 双语阅读器，自制示例课程](docs/images/reader.png)
 
 ## 下载
 
-当前版本：**2.0.0 · Windows 10/11 x64**。首次公开版本，尚未经过大规模设备兼容性验证。精确文件大小与校验值见对应 Release 附件。
+当前版本：**2.0.0 · Windows 10/11 x64**。精确文件大小与校验值见对应 Release 附件。
 
 | 发行包 | 适合你，如果… | 下载 |
 | --- | --- | --- |
@@ -33,7 +31,6 @@ coursebook 是一款本地课程编译与阅读应用。导入一门课的多份
 | Office 组件 · 351.1 MiB | 想为轻量版补充 PPT/PPTX 转换能力 | [Office ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.0.0/CourseCompiler-Office-Windows-x64.zip) |
 | 源码 · 约 1.6 MiB | 希望自行运行、修改或构建 | [Source ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.0.0/CourseCompiler-Source.zip) |
 
-[SHA256 校验文件](https://github.com/yunmyuki/coursebook/releases/download/v2.0.0/SHA256SUMS.txt) · [版本质量检查](docs/release-quality.md)
 
 想先体验阅读？[下载自制示例课程](https://github.com/yunmyuki/coursebook/releases/download/v2.0.0/CourseCompiler-Demo.zip)，直接解压打开 `index.html`，或在应用中导入。示例译文为人工编写，无需 API 即可体验阅读。
 
@@ -69,7 +66,7 @@ coursebook 是一款本地课程编译与阅读应用。导入一门课的多份
 
 联网搜索是可选功能，支持**博查、百度千帆、Tavily、Exa、Brave、SerpApi**；SerpApi 可选择 Google、Bing、百度引擎。各服务独立保存密钥，可先测试连接。Google/Bing 搜索通过 SerpApi 接入，不表示支持已经停用或限制新注册的旧版官方搜索 API。
 
-模型与搜索服务由你选择、配置和付费。应用不附赠模型额度，也不会使用你的 ChatGPT 订阅额度。
+模型与搜索服务由你选择、配置和付费。应用暂时不提供模型服务。
 
 ## 本地保存与隐私
 
@@ -80,13 +77,6 @@ coursebook 是一款本地课程编译与阅读应用。导入一门课的多份
 
 详见 [隐私与数据流](docs/privacy.md)。
 
-## 当前边界
-
-解析完整性是设计目标，不是准确率保证。复杂公式、密集表格、低清扫描件和阅读顺序仍可能需要人工复核。API 的请求上限不等于金额上限；价格和计费由服务商决定。
-
-AI 助手及联网搜索需要运行本地应用并配置服务；直接打开导出的 HTML 时，这些在线功能不可用。静态网站的笔记保存在浏览器中，应定期导出备份。
-
-目前提供 Windows x64 发行包；macOS、Linux、Windows ARM 尚未验证。不含自动更新或代码签名，Windows 可能提示未知发布者。
 
 ## 开发
 
