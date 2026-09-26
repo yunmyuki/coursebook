@@ -183,6 +183,6 @@ class Handler(BaseHTTPRequestHandler):
 def serve_local(port=8765):
     index_files()
     server=ThreadingHTTPServer(('127.0.0.1',port),Handler)
-    print(f'Course Compiler: http://127.0.0.1:{port}',flush=True)
+    print(f'coursebook: http://127.0.0.1:{port}',flush=True)
     try:server.serve_forever()
     except KeyboardInterrupt:server.server_close()

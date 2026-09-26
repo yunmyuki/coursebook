@@ -49,11 +49,11 @@ def main():
     run(['git','config','user.email','yunmyuki@users.noreply.github.com'],env,source)
     if not run(['git','remote'],env,source).stdout.strip():run(['git','remote','add','origin',remote],env,source)
     run(['git','add','--all'],env,source)
-    run(['git','commit','-m','Release Course Compiler '+__version__],env,source)
+    run(['git','commit','-m','Release coursebook '+__version__],env,source)
     run(git+['push','-u','origin','main'],env,source)
     print('Public source pushed to '+REPO,flush=True)
     run(['git','tag',TAG],env,source);run(git+['push','origin',TAG],env,source)
-    run(['gh','release','create',TAG,'--repo',REPO,'--verify-tag','--draft','--title','Course Compiler '+__version__,'--notes-file',str(ROOT/'docs/release-notes.md')],env,source)
+    run(['gh','release','create',TAG,'--repo',REPO,'--verify-tag','--draft','--title','coursebook '+__version__,'--notes-file',str(ROOT/'docs/release-notes.md')],env,source)
     assets.extend([OUT/'SHA256SUMS.txt',ROOT/'docs/release-quality.md'])
     for asset in assets:
         print('Uploading '+asset.name,flush=True)

@@ -1,4 +1,4 @@
-# Course Compiler 2.0.0
+# coursebook 2.0.0
 
 面向 Windows x64 的首次公开版本。
 

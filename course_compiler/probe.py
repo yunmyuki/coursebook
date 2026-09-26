@@ -12,7 +12,7 @@ def probe(store,role,incoming):
     with tempfile.TemporaryDirectory(dir=parent) as directory:
         output=Path(directory);budget=RequestBudget(2)
         if role=='parse':
-            im=Image.new('RGB',(800,300),'white');ImageDraw.Draw(im).text((50,80),'Course Compiler\nSample value: 12.5%',fill='black',font_size=32);im.save(output/'probe.jpg')
+            im=Image.new('RGB',(800,300),'white');ImageDraw.Draw(im).text((50,80),'coursebook\nSample value: 12.5%',fill='black',font_size=32);im.save(output/'probe.jpg')
             parser=DocumentParser(profile,output/'cache');parser.model.budget=budget
             result=parser.parse({'image':'probe.jpg','rawText':''},output);validate_layout(result)
             message='图片解析与版面格式验证通过。实际讲义质量仍需复核。'

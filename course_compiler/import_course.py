@@ -13,7 +13,7 @@ def import_course(stream,store):
         infos=z.infolist()
         if len(infos)>8000 or sum(i.file_size for i in infos)>1024**3:raise ValueError('课程 ZIP 体积过大。')
         names={i.filename for i in infos}
-        if 'course.json' not in names:raise ValueError('请选择 Course Compiler 导出的课程 ZIP。')
+        if 'course.json' not in names:raise ValueError('请选择 coursebook 导出的课程 ZIP。')
         course=json.loads(z.read('course.json'))
         cid=course.get('id','');site=store.course_path(cid)
         files=course.get('files')

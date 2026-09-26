@@ -294,7 +294,7 @@
     $('#quality-dialog').showModal();
   }
   function download(name,text,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
-  function backupMarkdown(){const lines=[`# ${C.title} · 我的学习笔记`,'',`导出时间：${date()}`,''];for(const n of state.notes){const p=anchorMap.get(n.contentId);lines.push(`## ${pageLabel(p)}`,'',`来源：${p.source.file} · #${n.contentId}`,'',`> ${recordContext(n.contentId).replace(/\n/g,'\n> ')}`,'',n.text,'');}lines.push('## 高亮','');for(const h of state.highlights)lines.push(`- ${h.text}（${pageLabel(anchorMap.get(h.contentId))} · #${h.contentId}）`);download('Course-Compiler-学习笔记.md',lines.join('\n'),'text/markdown;charset=utf-8');}
+  function backupMarkdown(){const lines=[`# ${C.title} · 我的学习笔记`,'',`导出时间：${date()}`,''];for(const n of state.notes){const p=anchorMap.get(n.contentId);lines.push(`## ${pageLabel(p)}`,'',`来源：${p.source.file} · #${n.contentId}`,'',`> ${recordContext(n.contentId).replace(/\n/g,'\n> ')}`,'',n.text,'');}lines.push('## 高亮','');for(const h of state.highlights)lines.push(`- ${h.text}（${pageLabel(anchorMap.get(h.contentId))} · #${h.contentId}）`);download('coursebook-学习笔记.md',lines.join('\n'),'text/markdown;charset=utf-8');}
   function captureSelection(){
     const s=getSelection();if(!s||s.isCollapsed||!s.rangeCount)return;
     const range=s.getRangeAt(0);selectedRanges=[];
@@ -338,7 +338,7 @@
       case 'search-open':openSearch();break;
       case 'new-note':case 'empty-new-note':openNote();break;
       case 'export-btn':case 'backup-open':$('#export-dialog').showModal();break;
-      case 'export-json':download('Course-Compiler-学习备份.json',JSON.stringify(state,null,2),'application/json');break;
+      case 'export-json':download('coursebook-学习备份.json',JSON.stringify(state,null,2),'application/json');break;
       case 'export-md':backupMarkdown();break;
       case 'quality-open':showQuality();break;
       case 'outline-tab':case 'topics-tab':outlineMode=el.id==='outline-tab'?'outline':'topics';$('#outline-tab').classList.toggle('active',outlineMode==='outline');$('#topics-tab').classList.toggle('active',outlineMode==='topics');$('#outline-tab').setAttribute('aria-selected',outlineMode==='outline');$('#topics-tab').setAttribute('aria-selected',outlineMode==='topics');renderOutline();break;
@@ -359,7 +359,7 @@
   addEventListener('hashchange',()=>{let id;try{id=decodeURIComponent(location.hash.slice(1));}catch(e){return;}if(id)navigate(id,{noHash:true});});
   addEventListener('popstate',()=>{let id;try{id=decodeURIComponent(location.hash.slice(1));}catch(e){return;}if(id)navigate(id,{noHash:true});});
   $('#course-title').textContent=C.title;$('#top-title').textContent=C.title;$('#course-subtitle').textContent=C.subtitle;$('#lecture-count').textContent=`${C.files.length} 份讲义 · ${allPages.length} 页`;
-  document.title=C.title+' · Course Compiler';document.documentElement.style.setProperty('--font',state.font+'px');setMode(state.mode);
+  document.title=C.title+' · coursebook';document.documentElement.style.setProperty('--font',state.font+'px');setMode(state.mode);
   let initial;try{initial=decodeURIComponent(location.hash.slice(1));}catch(e){initial=null;}
   // Resume precisely; new readers start at the first teaching page, with front matter available in original order.
   initial=anchorMap.has(initial)?initial:anchorMap.has(state.lastAnchor)?state.lastAnchor:(allPages.find(p=>p.units.filter(u=>u.type==='bullet').length>=2)||allPages[0]).id;

@@ -107,7 +107,7 @@ def package():
     for name in ('README.md','LICENSE'):copy(ROOT/name,APP/name)
     for name in DOCS:copy(ROOT/'docs'/name,APP/'docs'/name)
     for p in (ROOT/'docs/images').glob('*'):copy(p,APP/'docs/images'/p.name)
-    (APP/'开始使用.txt').write_text('Course Compiler '+__version__+'\n\n解压整个文件夹，再双击 CourseCompiler.exe。不要只移动 exe。\n使用说明：docs/quickstart.md\n轻量版：处理 PDF；PPT/PPTX 需安装 LibreOffice 或添加 Office 组件。\n完整版：已包含 PPT/PPTX 转换组件。\n自己的模型 API 和密钥需在应用中配置；已有课程阅读和笔记无需联网。\n数据目录：%LOCALAPPDATA%\\Course Compiler\n更新时替换程序文件夹，保留数据目录。\n','utf-8-sig')
+    (APP/'开始使用.txt').write_text('coursebook '+__version__+'\n\n解压整个文件夹，再双击 CourseCompiler.exe。不要只移动 exe。\n使用说明：docs/quickstart.md\n轻量版：处理 PDF；PPT/PPTX 需安装 LibreOffice 或添加 Office 组件。\n完整版：已包含 PPT/PPTX 转换组件。\n自己的模型 API 和密钥需在应用中配置；已有课程阅读和笔记无需联网。\n数据目录：%LOCALAPPDATA%\\Course Compiler\n更新时替换程序文件夹，保留数据目录。\n','utf-8-sig')
     files=safe_files(APP);source=public_source();source_files=safe_files(source)
     full=[(p,'CourseCompiler/'+p.relative_to(APP).as_posix()) for p in files]
     lite=[(p,n) for p,n in full if not p.is_relative_to(OFFICE)]

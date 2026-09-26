@@ -25,12 +25,12 @@ def main():
     serve.add_argument('--port',type=int,default=8765)
     export=sub.add_parser('export')
     export.add_argument('--output',default='dist')
-    export.add_argument('--zip',dest='zip_path',default='Course-Compiler.zip')
+    export.add_argument('--zip',dest='zip_path',default='coursebook.zip')
     args=parser.parse_args()
     if args.command=='serve':
         from .app_server import make_server
         server=make_server(args.port)
-        print(f'Course Compiler: http://127.0.0.1:{server.server_port}',flush=True)
+        print(f'coursebook: http://127.0.0.1:{server.server_port}',flush=True)
         try:server.serve_forever()
         except KeyboardInterrupt:pass
         finally:server.server_close()

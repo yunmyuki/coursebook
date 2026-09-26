@@ -40,7 +40,7 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
     budget=RequestBudget(request_limit,cancel)
     if hasattr(parser,'model'):parser.model.budget=budget
     translator.budget=budget
-    course={'schemaVersion':2,'id':cid,'title':title or ('Behavioral Finance' if any('fudan' in p.name.lower() for p in paths) else paths[0].stem),'subtitle':'双语课程 · 本地学习空间','files':files,'explanations':[],'targetLanguage':'zh-CN','compiledAt':datetime.now(timezone.utc).isoformat(),'terminology':dict(DEFAULT_TERMS),'provenance':{'compiler':'Course Compiler 2.0','parsingStrategy':'adaptive-single-pass','profiles':{r:{k:v for k,v in p.items() if k in ('provider','model','engine')} for r,p in profiles.items()}}}
+    course={'schemaVersion':2,'id':cid,'title':title or ('Behavioral Finance' if any('fudan' in p.name.lower() for p in paths) else paths[0].stem),'subtitle':'双语课程 · 本地学习空间','files':files,'explanations':[],'targetLanguage':'zh-CN','compiledAt':datetime.now(timezone.utc).isoformat(),'terminology':dict(DEFAULT_TERMS),'provenance':{'compiler':'coursebook 2.0','parsingStrategy':'adaptive-single-pass','profiles':{r:{k:v for k,v in p.items() if k in ('provider','model','engine')} for r,p in profiles.items()}}}
     if retained_course:
         translation_context=translation_context or retained_course.get('translationContext')
         terminology=terminology or retained_course.get('terminology')

@@ -1,5 +1,5 @@
 {
-  "name": "course-compiler",
+  "name": "coursebook",
   "version": "2.0.0",
   "private": true,
   "description": "Local, fidelity-first lecture compiler and offline bilingual reader",

@@ -31,7 +31,7 @@ def main():
         api=ctypes.WinDLL('kernel32',use_last_error=True);api.CreateMutexW.restype=ctypes.c_void_p
         handle=api.CreateMutexW(None,False,'Local\\CourseCompiler-'+hashlib.sha256(str(root).encode()).hexdigest()[:16])
         if ctypes.get_last_error()==183:
-            ctypes.windll.user32.MessageBoxW(None,'Course Compiler 已在运行。请切换到现有窗口。','Course Compiler',0)
+            ctypes.windll.user32.MessageBoxW(None,'coursebook 已在运行。请切换到现有窗口。','coursebook',0)
             return
     server=make_server(args.port,root)
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
@@ -50,7 +50,7 @@ def main():
             with opener.open(url+'/web/desktop.js') as response:js=response.read()
             fixture=root/'self-test.pdf';writer=PdfWriter();writer.add_blank_page(width=300,height=200);writer.write(fixture)
             pages=extract_pdf(fixture,root/'self-test-site','lecture-selftest')
-            result={'ok':status['version']==__version__ and b'Course Compiler' in html and len(js)==len((__import__('course_compiler.paths',fromlist=['resource_root']).resource_root()/'web/desktop.js').read_bytes()) and len(pages)==1,'frozen':bool(getattr(sys,'frozen',False)),'pdfRendered':True,'secureKeyRoundTrip':protect(protect('self-test-key'),True)=='self-test-key','officeAvailable':bool(locate_converter()),'version':status['version']}
+            result={'ok':status['version']==__version__ and b'coursebook' in html and len(js)==len((__import__('course_compiler.paths',fromlist=['resource_root']).resource_root()/'web/desktop.js').read_bytes()) and len(pages)==1,'frozen':bool(getattr(sys,'frozen',False)),'pdfRendered':True,'secureKeyRoundTrip':protect(protect('self-test-key'),True)=='self-test-key','officeAvailable':bool(locate_converter()),'version':status['version']}
             if args.test_office:
                 from pptx import Presentation
                 from pptx.util import Inches
@@ -77,11 +77,11 @@ def main():
             try:
                 import webview
                 webview.settings['ALLOW_DOWNLOADS']=True
-                window=webview.create_window('Course Compiler',url,width=1440,height=940,min_size=(900,650),background_color='#FFFFFF',hidden=bool(args.window_test))
+                window=webview.create_window('coursebook',url,width=1440,height=940,min_size=(900,650),background_color='#FFFFFF',hidden=bool(args.window_test))
                 def closing():
                     if any(j['status']=='running' for j in server.jobs.values()):
                         import ctypes
-                        return ctypes.windll.user32.MessageBoxW(None,'课程正在处理。关闭将暂停任务，已处理页面会保留。是否关闭？','Course Compiler',0x24)==6
+                        return ctypes.windll.user32.MessageBoxW(None,'课程正在处理。关闭将暂停任务，已处理页面会保留。是否关闭？','coursebook',0x24)==6
                     return True
                 window.events.closing+=closing
                 def smoke():
@@ -101,7 +101,7 @@ def main():
         webbrowser.open(url)
         if os.name=='nt':
             import ctypes
-            ctypes.windll.user32.MessageBoxW(None,'Course Compiler 已在浏览器中打开。\n处理课程时请保留此窗口。\n完成后点击“确定”退出。','Course Compiler',0)
+            ctypes.windll.user32.MessageBoxW(None,'coursebook 已在浏览器中打开。\n处理课程时请保留此窗口。\n完成后点击“确定”退出。','coursebook',0)
         else:thread.join()
     except Exception as e:
         atomic_json(root/'startup-error.json',{'error':type(e).__name__,'message':str(e)})
