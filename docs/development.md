@@ -7,7 +7,7 @@
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install -r requirements-lock.txt -r requirements-desktop.txt
+python -m pip install -r requirements-dev.txt -r requirements-desktop.txt
 New-Item -ItemType Directory -Force tmp
 python -m unittest discover -s tests -p "test_*.py"
 node tests/reader.test.cjs

@@ -101,6 +101,7 @@ python -m course_compiler serve --port 8768
 
 ```powershell
 New-Item -ItemType Directory -Force tmp
+python -m pip install -r requirements-dev.txt
 python -m unittest discover -s tests -p "test_*.py"
 node tests/reader.test.cjs
 ```

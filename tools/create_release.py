@@ -20,7 +20,7 @@ APP=OUT/'app/CourseCompiler'
 OFFICE=APP/'_internal/office'
 REPOSITORY='https://github.com/yunmyuki/coursebook'
 DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md')
-SOURCE_FILES=('README.md','LICENSE','.gitignore','requirements.txt','requirements-desktop.txt','requirements-lock.txt','desktop_main.py','package.json')
+SOURCE_FILES=('README.md','LICENSE','.gitignore','requirements.txt','requirements-desktop.txt','requirements-lock.txt','requirements-dev.txt','desktop_main.py','package.json')
 SOURCE_TOOLS=('build_desktop.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py')
 FORBIDDEN={'.env','.env.local','settings.json','library.json','course.json','course-data.js'}
 
