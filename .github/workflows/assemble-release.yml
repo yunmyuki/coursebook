@@ -1,0 +1,28 @@
+name: Assemble verified release archives
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download verified bases and assembly recipe
+        run: |
+          mkdir -p work/sources
+          gh release download v2.1.0 --pattern CourseCompiler-Windows-x64-Lite.zip --pattern assembly-manifest.json --pattern assembly-patch.bin --dir work/sources
+          gh release download v2.0.0 --pattern CourseCompiler-Office-Windows-x64.zip --dir work/sources
+      - name: Reassemble and verify exact SHA256 and ZIP integrity
+        run: python tools/assemble_release.py assemble --manifest work/sources/assembly-manifest.json --sources work/sources --output work/output
+      - name: Upload verified archives to the existing draft
+        run: |
+          gh release view v2.1.0 --json isDraft --jq '.isDraft' | grep -x true
+          gh release upload v2.1.0 work/output/*.zip
