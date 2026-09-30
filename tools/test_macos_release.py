@@ -9,6 +9,15 @@ def main():
     arch=platform.machine();out=ROOT/'release/macos'/arch
     app=out/'Coursebook.app';binary=app/'Contents/MacOS/Coursebook'
     test=ROOT/'tmp'/('macos-'+arch);test.mkdir(parents=True,exist_ok=True)
+    # Source tests and the frozen app have different code-signing identities.
+    # Remove only the synthetic source-test item on disposable hosted runners,
+    # so the actual app creates and verifies its own Keychain access policy.
+    if os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_ENVIRONMENT')=='github-hosted':
+        from keyring.backends.macOS import Keyring
+        from keyring.errors import PasswordDeleteError
+        from course_compiler.mac_security import SERVICE,ACCOUNT
+        try:Keyring().delete_password(SERVICE,ACCOUNT)
+        except PasswordDeleteError:pass
     for mode in ('self-test','window-test'):
         report=out/(mode+'.json')
         subprocess.run([str(binary),'--'+mode,str(report),'--data-dir',str(test/mode)],check=True,timeout=180)

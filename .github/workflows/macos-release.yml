@@ -50,3 +50,11 @@ jobs:
             release/macos/${{ matrix.arch }}/*.txt
             release/macos/${{ matrix.arch }}/*.md
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: macOS-diagnostics-${{ matrix.arch }}
+          path: |
+            tmp/macos-${{ matrix.arch }}/**/self-test-trace.log
+            tmp/macos-${{ matrix.arch }}/**/startup-error.json
+          if-no-files-found: ignore

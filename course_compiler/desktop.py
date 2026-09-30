@@ -24,6 +24,12 @@ def main():
     args=parser.parse_args()
     if args.data_dir:os.environ['COURSE_DATA_DIR']=str(Path(args.data_dir).resolve())
     root=data_root();root.mkdir(parents=True,exist_ok=True)
+    diagnostic=None
+    if args.self_test:
+        import faulthandler
+        diagnostic=(root/'self-test-trace.log').open('w')
+        faulthandler.enable(diagnostic)
+        faulthandler.dump_traceback_later(60,file=diagnostic)
     # Prevent two desktop windows from writing the same workspace simultaneously.
     handle=None
     workspace_lock=None
@@ -134,5 +140,7 @@ def main():
         for job in server.jobs.values():job['cancel'].set()
         server.shutdown();server.server_close()
         if workspace_lock:workspace_lock.close()
+        if diagnostic:
+            faulthandler.cancel_dump_traceback_later();faulthandler.disable();diagnostic.close()
 
 if __name__=='__main__':main()
