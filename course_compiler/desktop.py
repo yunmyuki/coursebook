@@ -1,4 +1,4 @@
-"""Windows desktop entry. Bundled runtime, local JSON workspace, no hosted backend."""
+"""Coursebook desktop entry with native Windows and macOS windows."""
 import argparse
 import json
 import os
@@ -26,6 +26,14 @@ def main():
     root=data_root();root.mkdir(parents=True,exist_ok=True)
     # Prevent two desktop windows from writing the same workspace simultaneously.
     handle=None
+    workspace_lock=None
+    if sys.platform=='darwin':
+        import fcntl
+        workspace_lock=(root/'desktop.lock').open('a')
+        try:fcntl.flock(workspace_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            workspace_lock.close()
+            return
     if os.name=='nt':
         import ctypes,hashlib
         api=ctypes.WinDLL('kernel32',use_last_error=True);api.CreateMutexW.restype=ctypes.c_void_p
@@ -79,7 +87,10 @@ def main():
                 result['officeRoundTrip']=restored.is_file() and len(extracted)==1 and sum(u['type']=='table-cell' for u in units)==4 and any(u['type']=='speaker-note' for u in units)
                 result['ok']=result['ok'] and result['officeRoundTrip']
             import webview
-            from webview.platforms import winforms
+            if sys.platform=='darwin':
+                from webview.platforms import cocoa
+            else:
+                from webview.platforms import winforms
             result['webviewImported']=True
             atomic_json(Path(args.self_test),result)
             if not result['ok'] or not result['secureKeyRoundTrip']:raise RuntimeError('Release self-test failed')
@@ -88,9 +99,11 @@ def main():
             try:
                 import webview
                 webview.settings['ALLOW_DOWNLOADS']=True
-                window=webview.create_window('coursebook',url,width=1440,height=940,min_size=(900,650),background_color='#FFFFFF',hidden=bool(args.window_test))
+                window=webview.create_window('Coursebook',url,width=1440,height=940,min_size=(900,650),background_color='#FFFFFF',hidden=bool(args.window_test))
                 def closing():
                     if any(j['status']=='running' for j in server.jobs.values()):
+                        if sys.platform=='darwin':
+                            return window.create_confirmation_dialog('Coursebook','课程正在处理。关闭将暂停任务，已处理页面会保留。是否关闭？')
                         import ctypes
                         return ctypes.windll.user32.MessageBoxW(None,'课程正在处理。关闭将暂停任务，已处理页面会保留。是否关闭？','coursebook',0x24)==6
                     return True
@@ -103,7 +116,7 @@ def main():
                         if result.get('loaded'):break
                         time.sleep(.25)
                     result['ok']=bool(result.get('ready') and result.get('loaded'));atomic_json(Path(args.window_test),result);window.destroy()
-                webview.start(smoke if args.window_test else None,gui='edgechromium',private_mode=False,storage_path=str(root/'webview'))
+                webview.start(smoke if args.window_test else None,gui='cocoa' if sys.platform=='darwin' else 'edgechromium',private_mode=False,storage_path=str(root/'webview'))
                 return
             except Exception:
                 if args.window_test:raise
@@ -120,5 +133,6 @@ def main():
     finally:
         for job in server.jobs.values():job['cancel'].set()
         server.shutdown();server.server_close()
+        if workspace_lock:workspace_lock.close()
 
 if __name__=='__main__':main()

@@ -8,5 +8,6 @@ def resource_root():
 
 def data_root():
     if os.environ.get('COURSE_DATA_DIR'):return Path(os.environ['COURSE_DATA_DIR']).resolve()
+    if getattr(sys,'frozen',False) and sys.platform=='darwin':return Path.home()/'Library/Application Support/Coursebook'
     if getattr(sys,'frozen',False):return Path(os.environ.get('LOCALAPPDATA',Path.home()))/'Course Compiler'
     return resource_root()/'local-data'

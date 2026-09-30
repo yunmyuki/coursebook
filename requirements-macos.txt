@@ -1,0 +1,8 @@
+-r requirements-lock.txt
+pywebview==6.2.1
+pyinstaller==6.22.3
+keyring>=25.6,<26
+pyobjc-framework-Cocoa>=11,<13
+pyobjc-framework-Quartz>=11,<13
+pyobjc-framework-WebKit>=11,<13
+pyobjc-framework-Security>=11,<13

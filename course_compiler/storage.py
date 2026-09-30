@@ -4,6 +4,7 @@ import copy
 import ctypes
 import json
 import os
+import sys
 import re
 import threading
 from pathlib import Path
@@ -18,6 +19,9 @@ def atomic_json(path,value):
     temp=path.with_suffix('.tmp');temp.write_text(json.dumps(value,ensure_ascii=False,indent=2),'utf-8');temp.replace(path)
 
 def protect(text,decode=False):
+    if sys.platform=='darwin':
+        from .mac_security import protect_key
+        return protect_key(text,decode)
     if os.name!='nt':raise ValueError('当前系统尚未提供安全密钥存储。此桌面发行版面向 Windows。')
     from ctypes import wintypes
     class Blob(ctypes.Structure):_fields_=[('size',wintypes.DWORD),('data',ctypes.POINTER(ctypes.c_char))]
@@ -79,7 +83,7 @@ class Store:
                 for p in value['profiles'].values():p['hasApiKey']=bool(p.pop('apiKey',''))
                 for p in search['profiles'].values():p['hasApiKey']=bool(p.pop('apiKey',''))
                 search['hasApiKey']=bool(search.pop('apiKey',''))
-                value['secureStorage']='Windows DPAPI' if os.name=='nt' else 'unavailable'
+                value['secureStorage']='Windows DPAPI' if os.name=='nt' else 'macOS Keychain' if sys.platform=='darwin' else 'unavailable'
             return value
     def save_settings(self,incoming):
         with self.lock:
