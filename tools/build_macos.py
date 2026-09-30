@@ -31,7 +31,7 @@ def main():
         name=dist.metadata.get('Name','unknown');packages[name]=dist.version
         for file in dist.files or []:
             p=Path(dist.locate_file(file))
-            if p.is_file() and any(token in p.name.lower() for token in ('license','copying','notice')) and p.suffix not in ('.py','.pyc'):
+            if p.is_file() and any(p.name.lower().startswith(token) for token in ('license','copying','notice')) and p.suffix.lower() in ('','.txt','.md','.rst','.html'):
                 target=notices/(name+'-'+dist.version)/str(file).replace('../','').replace('/', '_')
                 target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(p,target)
     (notices/'components.json').write_text(json.dumps({'python':sys.version,'arch':arch,'packages':packages},indent=2))

@@ -6,7 +6,7 @@ SERVICE='com.coursebook.desktop'
 ACCOUNT='settings-encryption-v1'
 
 def protect_key(text,decode=False):
-    from cryptography.fernet import Fernet,InvalidToken
+    from cryptography.fernet import Fernet
     from keyring.backends.macOS import Keyring
     try:
         with _lock:
