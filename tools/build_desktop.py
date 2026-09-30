@@ -13,8 +13,11 @@ def main():
     version=work/'version-info.txt';numbers=tuple(int(n) for n in __version__.split('.'))+(0,)
     version.write_text(f"VSVersionInfo(ffi=FixedFileInfo(filevers={numbers},prodvers={numbers},mask=0x3f,flags=0x0,OS=0x40004,fileType=0x1,subtype=0x0,date=(0,0)),kids=[StringFileInfo([StringTable('040904B0',[StringStruct('FileDescription','coursebook'),StringStruct('FileVersion','{__version__}'),StringStruct('ProductName','coursebook'),StringStruct('ProductVersion','{__version__}')])]),VarFileInfo([VarStruct('Translation',[1033,1200])])])",encoding='utf-8')
     command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--windowed','--noupx','--name','CourseCompiler','--version-file',str(version),'--distpath',str(args.dist_dir),'--workpath',str(work),'--specpath',str(work),'--add-data',str(ROOT/'web')+';web']
+    from course_compiler.local_layout import model_path,verify
+    layout_model=model_path();verify(layout_model)
+    command+=['--add-data',str(layout_model)+';models/PP-DocLayoutV3','--collect-binaries','onnxruntime','--collect-data','onnxruntime']
     for module in ('webview','pythonnet','clr_loader','pypdfium2_raw'):command+=['--collect-all',module]
-    for module in ('matplotlib','pandas','scipy','torch','IPython','PyQt5','PyQt6','tkinter','pytest','jupyter'):command+=['--exclude-module',module]
+    for module in ('matplotlib','pandas','scipy','torch','IPython','PyQt5','PyQt6','tkinter','pytest','jupyter','onnxruntime.tools','onnxruntime.quantization','onnxruntime.transformers','onnx'):command+=['--exclude-module',module]
     command.append(str(ROOT/'desktop_main.py'))
     env=dict(os.environ);env['PYTHONPATH']=os.pathsep.join([str(ROOT/'.build-deps'),str(ROOT)])
     subprocess.run(command,cwd=ROOT,env=env,check=True)

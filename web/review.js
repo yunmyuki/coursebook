@@ -7,7 +7,7 @@ const pages=C.files.flatMap(f=>f.pages),units=pages.flatMap(p=>p.units.filter(u=
 const d=document.createElement('dialog');d.id='review-dialog';
 d.innerHTML=`<div class="dialog-heading"><div><h2>讲义复核</h2><p id="review-count" class="small muted"></p></div><button type="button" class="icon-button" id="review-close" aria-label="关闭复核">×</button></div>
 <div class="review-workspace"><aside class="review-list-panel"><label class="review-filter">查看<select id="review-filter"><option value="pending">待复核内容</option><option value="all">全部正文</option></select></label><div id="review-list"></div></aside>
-<section class="review-source-panel"><div class="review-source-heading"><span id="review-page-label"></span><button type="button" id="review-jump" class="text-button">定位正文 ↗</button></div><div class="review-original"><img id="review-page-image" alt="原讲义页面"><span id="review-position"></span></div><p id="review-position-note" class="small muted"></p></section>
+<section class="review-source-panel"><div class="review-source-heading"><span id="review-page-label"></span><button type="button" id="review-reparse" class="text-button" title="使用当前解析与翻译服务，仅处理这一页，受请求上限约束，保留旧记录">重新识别本页</button><button type="button" id="review-jump" class="text-button">定位正文 ↗</button></div><div class="review-original"><img id="review-page-image" alt="原讲义页面"><span id="review-position"></span></div><p id="review-position-note" class="small muted"></p></section>
 <form id="review-form"><p id="review-reason" class="small muted"></p><div id="review-unit-fields"><label class="review-field">原文<textarea id="review-source" maxlength="30000" rows="4"></textarea></label><div class="review-translation-heading"><label for="review-translation">译文</label><button type="button" id="review-translate" class="button">生成译文草稿</button></div><textarea id="review-translation" maxlength="30000" rows="4"></textarea><p id="review-draft-label" class="small muted"></p><label class="review-field" id="review-math-label">LaTeX 公式<textarea id="review-math" rows="2" maxlength="30000"></textarea></label><details class="review-history"><summary>原始识别文本与修正历史</summary><pre id="review-history"></pre></details></div>
 <div id="review-page-fields" hidden><p>请核对整页表格的数字、符号和行列。确认页面复核不会自动清除单元自身的疑点。</p></div><p id="review-error" role="status"></p><div class="review-editor-actions"><button type="button" class="button" id="review-reset">撤销未保存修改</button><button type="submit" class="button primary" id="review-save">保存并下一项</button></div></form></div>
 <div class="dialog-footer"><button type="button" class="button" id="review-prev">上一项</button><span class="small muted">Ctrl / ⌘ + Enter 保存 · 草稿确认后才写入正文</span><button type="button" class="button" id="review-next">跳过，下一项 →</button></div>`;
@@ -28,8 +28,22 @@ $('#review-prev').onclick=()=>step(-1);$('#review-next').onclick=()=>step(1);
 $('#review-jump').onclick=()=>{if(!canLeave()||!target)return;d.close();document.dispatchEvent(new CustomEvent('course-navigate',{detail:target.id}));};
 $('#review-reset').onclick=()=>{if(busy)return;dirty=false;select(target);};
 $('#review-source').oninput=()=>{dirty=true;$('#review-draft-label').textContent='原文已修改。请更新对应译文，或生成新的草稿。';};$('#review-translation').oninput=$('#review-math').oninput=()=>{dirty=true;};
-function setBusy(value,saving=false){busy=value;['#review-save','#review-translate','#review-reset'].forEach(s=>$(s).disabled=value);['#review-source','#review-translation','#review-math'].forEach(s=>$(s).disabled=value&&saving);}
+function setBusy(value,saving=false){busy=value;['#review-save','#review-translate','#review-reset','#review-reparse'].forEach(s=>$(s).disabled=value);['#review-source','#review-translation','#review-math'].forEach(s=>$(s).disabled=value&&saving);}
 $('#review-translate').onclick=async()=>{if(!target?.unit||busy)return;setBusy(true);const id=target.id,text=$('#review-source').value;$('#review-error').textContent='正在生成译文草稿…';try{const draft=await api('/api/review-translation/'+C.id,{contentId:id,sourceText:text});if(target.id!==id||$('#review-source').value!==text){$('#review-error').textContent='原文已变化，请重新生成草稿。';return;}$('#review-translation').value=draft.translatedText;dirty=true;$('#review-draft-label').textContent='AI 译文草稿，尚未写入正文；请核对后保存。';$('#review-error').textContent='';}catch(e){$('#review-error').textContent=e.message;}finally{setBusy(false);}};
+$('#review-reparse').onclick=async()=>{
+ if(!target||!canLeave())return;setBusy(true,true);const pageId=target.page.id;
+ $('#review-error').textContent='正在重新识别本页并翻译；原页保留到全部完成。受当前解析模式及请求上限约束。';
+ try{
+  await api('/api/reparse/'+C.id,{pageId});
+  while(true){
+   await new Promise(resolve=>setTimeout(resolve,1800));
+   const r=await fetch('/api/jobs/'+C.id);if(!r.ok)throw Error('无法读取任务进度，请在课程库查看任务。');const job=await r.json();
+   if(job.status==='running'){$('#review-error').textContent=job.progress?.message||'正在处理本页…';continue;}
+   if(!['complete','review'].includes(job.status))throw Error(job.error||'重识别未完成，原页保持不变。');
+   location.hash=pageId;location.reload();break;
+  }
+ }catch(e){$('#review-error').textContent=e.message;}finally{setBusy(false);}
+};
 $('#review-form').onsubmit=async e=>{e.preventDefault();if(!target||busy)return;const index=Math.max(0,queue.findIndex(q=>q.id===target.id)),u=target.unit;const body=u?{contentId:u.id,sourceText:$('#review-source').value,translatedText:$('#review-translation').value,latex:$('#review-math').value,expectedSourceText:u.sourceText,expectedTranslatedText:u.translatedText}:{pageId:target.page.id};if(u&&body.sourceText!==u.sourceText&&body.translatedText===u.translatedText&&u.type!=='formula'&&u.type!=='code'){$('#review-error').textContent='原文已改变，请更新译文后再保存。';return;}setBusy(true,true);try{const patch=await api('/api/review/'+C.id,body);document.dispatchEvent(new CustomEvent('course-review-updated',{detail:patch}));dirty=false;setBusy(false);refreshQueue();if(queue.length)select(queue[Math.min(index,queue.length-1)]);else{d.close();launcher.textContent='复核 · 已处理';}}catch(error){$('#review-error').textContent=error.message;}finally{setBusy(false);}};
 d.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('#review-form').requestSubmit();}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-review-unit],[data-review-page]');if(!b)return;const id=b.dataset.reviewUnit||b.dataset.reviewPage;const p=pages.find(p=>p.id===id||p.units.some(u=>u.id===id));if(p)open({id,page:p,unit:p.units.find(u=>u.id===id)});});

@@ -24,17 +24,25 @@ def course_id(paths):
     return 'course-'+hashlib.sha256(('pipeline-v1'+''.join(hashlib.sha256(p.read_bytes()).hexdigest() for p in paths)).encode()).hexdigest()[:16]
 
 def fingerprint(profile):
+    if profile.get('engine')=='local-layout-ocr':
+        from .local_layout import VERSION,SHA256
+        from .hybrid_parser import VERSION as HYBRID_VERSION
+        profile={**profile,'layoutImplementation':VERSION+SHA256+HYBRID_VERSION}
     return hashlib.sha256(json.dumps({k:v for k,v in profile.items() if k not in ('apiKey','hasApiKey','encryptedKey')},sort_keys=True).encode()).hexdigest()[:16]
 
 def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanations=False,parse_mode='adaptive',progress=lambda *a:None,cancel=None,title=None,request_limit=1000,translation_context=None,terminology=None,retained_course=None):
     started=time.monotonic();paths=sorted(map(Path,paths),key=course_order_key);cid=course_id(paths)
     output=Path(output);output.mkdir(parents=True,exist_ok=True);cache=Path(cache_root)/cid;cache.mkdir(parents=True,exist_ok=True)
-    extraction=cache/'extraction-v3.json'
+    extraction=cache/'extraction-v4.json'
     if extraction.exists() and (output/'assets').exists() and (output/'sources').exists():files=json.loads(extraction.read_text('utf-8'))
     else:files=extract_files(paths,output,progress);atomic_json(extraction,files)
     all_pages=[p for f in files for p in f['pages']];total=len(all_pages)
-    parse_key='v3-'+parse_mode+'-'+fingerprint(profiles['parse']);translation_key=fingerprint(profiles['translation'])
+    parse_key='v5-'+parse_mode+'-'+fingerprint(profiles['parse']);translation_key=fingerprint(profiles['translation'])
     parser=DocumentParser(profiles['parse'],Path(cache_root)/'model')
+    parser.layout_root=Path(cache_root).parent
+    if ai and profiles['parse'].get('engine')=='local-layout-ocr':
+        from .local_layout import session
+        session(parser.layout_root)  # Preflight before any paid translation request.
     translator=make_model(profiles['translation'],Path(cache_root)/'model')
     from .requests_control import RequestBudget
     budget=RequestBudget(request_limit,cancel)
@@ -62,19 +70,30 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
             if isinstance(e,ModelAuthorizationError):context_blocked=str(e)
     termfile=cache/('terminology-'+translation_key+'.json')
     if termfile.exists():course['terminology']={**json.loads(termfile.read_text('utf-8')),**course['terminology']}
-    lock=threading.Lock();halt=threading.Event();done=0;metrics={'nativePages':0,'visionPages':0,'resumedPages':0,'documentCalls':0,'secondPassCalls':0,'pageFailures':0}
+    lock=threading.Lock();halt=threading.Event();done=0;metrics={'nativePages':0,'visionPages':0,'hybridPages':0,'nativeRegions':0,'ocrRegions':0,'resumedPages':0,'documentCalls':0,'secondPassCalls':0,'pageFailures':0}
     if context_blocked:halt.set();progress('blocked',0,total,context_blocked)
     legacy_translation_key=translation_key;translation_key+='-'+context_key(course['translationContext'])+'-'+hashlib.sha256(json.dumps(course['terminology'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:12]
     def stopped():return halt.is_set() or bool(cancel and cancel.is_set())
     def process(page):
         nonlocal done
         saved=cache/(page['id']+'.json');exp=[];meta={}
-        text_lines=page.get('textLines',[])
+        text_lines=page.get('textLines',[]);layout=page.get('layoutAnalysis');fresh=copy.deepcopy(page)
         if saved.exists():
             previous=json.loads(saved.read_text('utf-8'));page.clear();page.update(previous['page']);exp=previous.get('explanations',[]);meta=previous.get('stages',{})
         if text_lines:page['textLines']=text_lines
+        if layout is not None:page['layoutAnalysis']=layout
+        # This migration fixes the native shortcut. Already visually parsed pages
+        # with the same profile/mode remain reusable instead of charging the course again.
+        old_keys=[v+'-'+parse_mode+'-'+fingerprint(profiles['parse']) for v in ('v3','v4')]
+        if meta.get('parse') in old_keys and page.get('visualStatus')=='complete':
+            from .visual_quality import cached_page_issues
+            issues=cached_page_issues(page)
+            reusable=page.get('validationMethod')=='single-pass-plus-local-checks' or meta['parse'].startswith('v4-')
+            if reusable and not issues:meta['parse']=parse_key
         restore_heading_groups(page)
         route,reason=routing(page,parse_mode)
+        if profiles['parse'].get('engine')=='local-layout-ocr' and not page.get('blankPage'):
+            route,reason='local-layout-ocr','本地检测所有版面区域，复用可靠文字层，按需识别图表与缺失文字'
         if stopped():
             # Retain cached explanations without counting an untouched page as processed.
             with lock:course['explanations'].extend(exp)
@@ -86,12 +105,21 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
                     progress('document-parsing',page['number'],total,reason)
                     candidate=copy.deepcopy(page)
                     if route=='native':
+                        if saved.exists() and meta.get('parse')!=parse_key and layout and page['source']['file'].lower().endswith('.pdf'):
+                            # Upgrade cached native paragraphs without losing old anchors or
+                            # copying a partial sentence's translation to a merged paragraph.
+                            result={'blocks':[{'text':u['sourceText'],'type':u['type'],'bbox':u['position'],'level':u.get('level',0),'readingOrder':i} for i,u in enumerate(fresh['units'])]}
+                            commit_layout(candidate,result,output)
+                            for u in candidate['units']:
+                                if not u.get('reviewOnly'):u['origin']='text-layer'
                         native_figures(candidate,output);candidate.update(visualStatus='complete',transcriptionStatus='complete',validationMethod='native-text-plus-local-checks')
                         with lock:metrics['nativePages']+=1
                     else:
                         with lock:metrics['documentCalls']+=1
                         result=parser.parse(candidate,output);commit_layout(candidate,result,output)
-                        with lock:metrics['visionPages']+=1
+                        with lock:
+                            metrics['hybridPages' if route=='local-layout-ocr' else 'visionPages']+=1
+                            for key in ('nativeRegions','ocrRegions'):metrics[key]+=result.get('hybridMetrics',{}).get(key,0)
                     page.clear();page.update(candidate);page['parseRoute']={'route':route,'reason':reason};meta['parse']=parse_key
                     exp=[];meta.pop('explanation',None)
                     atomic_json(saved,{'page':page,'explanations':exp,'stages':meta})

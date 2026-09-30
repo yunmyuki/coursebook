@@ -34,7 +34,9 @@ def validate_profile(p):
     from .parsers import validate_parser_connection
     validate_parser_connection(p)
     if p.get('provider','openai') not in ('openai','siliconflow','anthropic'):raise ValueError('接口格式无效。')
-    if p.get('engine','vision') not in ('vision','glm-ocr','unlimited-ocr','paddle-layout'):raise ValueError('文档解析引擎无效。')
+    if p.get('engine','vision') not in ('vision','glm-ocr','unlimited-ocr','paddle-layout','local-layout-ocr'):raise ValueError('文档解析引擎无效。')
+    if p.get('ocrFlavor','auto') not in ('auto','paddle','glm','deepseek','vision'):raise ValueError('区域 OCR 协议无效。')
+    if not isinstance(p.get('maxOcrRegions',32),int) or not 1<=p.get('maxOcrRegions',32)<=100:raise ValueError('单页 OCR 区域上限应为 1–100。')
     if p.get('authScheme','Bearer') not in ('Bearer','token'):raise ValueError('认证方式无效。')
     url=urlsplit(p.get('baseUrl',''))
     if url.scheme!='https' and not(url.scheme=='http' and url.hostname in ('localhost','127.0.0.1','::1')):raise ValueError('API 地址须使用 HTTPS，本地模型可使用 HTTP。')
@@ -52,7 +54,8 @@ class Store:
     def defaults(self):
         cfg=local_settings();key=cfg.get('SILICONFLOW_API_KEY','')
         common={'provider':'siliconflow','baseUrl':cfg.get('SILICONFLOW_BASE_URL','https://api.siliconflow.cn/v1'),'model':cfg.get('COURSE_MODEL','Qwen/Qwen3.8-27B'),'engine':'vision','apiKey':key}
-        return {'version':2,'settingsMode':'simple','profiles':{'parse':common,'translation':{**common,'inherit':True},'explanation':{**common,'inherit':True}},'workers':3,'parseMode':'adaptive','requestLimit':1000}
+        parser={**common,'model':'PaddlePaddle/PaddleOCR-VL-1.5','engine':'local-layout-ocr','ocrFlavor':'paddle','maxOcrRegions':32}
+        return {'version':2,'settingsMode':'advanced','profiles':{'parse':parser,'translation':{**common,'inherit':False},'explanation':{**common,'inherit':False}},'workers':3,'parseMode':'adaptive','requestLimit':1000}
     def settings(self,public=False):
         with self.lock:
             value=self.read('settings.json',None)
@@ -88,7 +91,7 @@ class Store:
             for role in ROLES:
                 p=incoming.get('profiles',{}).get(role,{})
                 if not isinstance(p,dict):raise ValueError('模型配置格式无效。')
-                p={k:p[k] for k in ('provider','baseUrl','model','engine','authScheme','inherit','apiKey','clearKey') if k in p}
+                p={k:p[k] for k in ('provider','baseUrl','model','engine','authScheme','ocrFlavor','maxOcrRegions','inherit','apiKey','clearKey') if k in p}
                 if role=='parse':p['inherit']=False
                 if not p.get('inherit'):validate_profile(p)
                 prior=old['profiles'].get(role,{})
@@ -127,7 +130,7 @@ class Store:
         return result
     def profiles(self):
         value=self.settings();ps=value['profiles'];result={r:copy.deepcopy(ps['parse'] if ps[r].get('inherit') else ps[r]) for r in ROLES}
-        if any(result[r].get('engine') in ('glm-ocr','unlimited-ocr','paddle-layout') for r in ('translation','explanation')):raise ValueError('专用 OCR 模型不能翻译或作为 AI 助手，请为这两个阶段选择文本模型。')
+        if any(result[r].get('engine') in ('glm-ocr','unlimited-ocr','paddle-layout','local-layout-ocr') for r in ('translation','explanation')):raise ValueError('专用 OCR 模型不能翻译或作为 AI 助手，请为这两个阶段选择文本模型。')
         return result
 
     def probe_profile(self,role,incoming):

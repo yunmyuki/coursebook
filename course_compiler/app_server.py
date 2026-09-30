@@ -28,6 +28,9 @@ class AppHandler(Handler):
             if path in ('/','/app','/compiler'):return self.serve_file(resource_root()/'web','desktop.html')
             if path=='/api/status':return self.json_response(200,{'token':TOKEN,'version':__version__,'dataPath':str(self.store.root),'converterAvailable':bool(locate_converter()),'files':self.files(),'courses':self.store.courses(),'settings':self.store.settings(public=True)})
             if path=='/api/settings':return self.json_response(200,self.store.settings(public=True))
+            if path=='/api/layout-component':
+                from .local_layout import status
+                return self.json_response(200,{**status(self.store.root),**getattr(self.server,'layout_install',{})})
             if path.startswith('/api/assistant/'):
                 return self.json_response(200,self.server.assistant.snapshot(path.rsplit('/',1)[-1]))
             if path=='/api/library':return self.json_response(200,self.store.courses())
@@ -61,6 +64,20 @@ class AppHandler(Handler):
         path=urllib.parse.urlsplit(self.path).path
         try:
             length=int(self.headers.get('Content-Length','0'))
+            if path=='/api/layout-component/import':
+                from .local_layout import SIZE,install
+                if length!=SIZE:raise ValueError('请选择官方固定版本 inference.onnx（130502049 字节）。')
+                with self.server.job_lock:
+                    if getattr(self.server,'layout_install',{}).get('downloading') or any(j['status']=='running' for j in self.server.jobs.values()):raise ValueError('请等待当前任务结束后安装版面组件。')
+                    import tempfile
+                    with tempfile.TemporaryDirectory(dir=self.store.root) as directory:
+                        source=Path(directory)/'model.onnx';remaining=length
+                        with source.open('wb') as stream:
+                            while remaining:
+                                chunk=self.rfile.read(min(256*1024,remaining))
+                                if not chunk:raise ValueError('模型上传中断。')
+                                stream.write(chunk);remaining-=len(chunk)
+                        return self.json_response(200,install(self.store.root,source=source))
             if path=='/api/import-course':
                 if not 0<length<=250*1024**2:raise ValueError('课程 ZIP 上限 250 MB。')
                 with self.server.job_lock:
@@ -87,6 +104,21 @@ class AppHandler(Handler):
                 return self.json_response(200,{'id':fid,'name':name,'size':length})
             if not 0<length<=8*1024*1024:raise ValueError('请求大小无效。')
             data=json.loads(self.rfile.read(length))
+            if path=='/api/layout-component/install':
+                from .local_layout import install
+                with self.server.job_lock:
+                    if getattr(self.server,'layout_install',{}).get('downloading'):return self.json_response(202,{'started':True})
+                    if any(j['status']=='running' for j in self.server.jobs.values()):raise ValueError('请等待当前任务结束后安装版面组件。')
+                    self.server.layout_install={'downloading':True,'downloadedBytes':0,'error':None}
+                server=self.server;root=self.store.root
+                def download_component():
+                    try:
+                        install(root,progress=lambda received,total:server.layout_install.update(downloadedBytes=received))
+                        server.layout_install={'downloading':False,'error':None}
+                    except Exception:
+                        server.layout_install={'downloading':False,'error':'下载或校验失败。可重试，或导入官方 inference.onnx 文件。'}
+                threading.Thread(target=download_component,daemon=True).start()
+                return self.json_response(202,{'started':True})
             if path=='/api/search/probe':
                 from .search_providers import probe
                 return self.json_response(200,probe(self.store,data))
@@ -100,6 +132,23 @@ class AppHandler(Handler):
             if path.startswith('/api/review-translation/'):
                 from .review import suggest_translation
                 return self.json_response(200,suggest_translation(self.store,path.rsplit('/',1)[-1],data))
+            if path.startswith('/api/reparse/'):
+                from .reparse import reparse_page
+                cid=path.rsplit('/',1)[-1];site=self.store.course_path(cid);page_id=data.get('pageId')
+                course=json.loads((site/'course.json').read_text('utf-8'))
+                if not any(p['id']==page_id for f in course['files'] for p in f['pages']):raise ValueError('页面不存在。')
+                with self.server.job_lock:
+                    if any(j['status']=='running' for j in self.server.jobs.values()):return self.json_response(409,{'error':'请等待当前编译结束后重识别。'})
+                    job={'id':cid,'title':course.get('title','课程')+' · 单页重识别','kind':'page-reparse','pageId':page_id,'status':'running','cancel':threading.Event(),'events':[],'startedAt':datetime.now(timezone.utc).isoformat()};self.server.jobs[cid]=job
+                    atomic_json(self.store.root/'jobs'/(cid+'.json'),self.public_job(job))
+                def repair_run():
+                    def progress(stage,current,total,message):
+                        job['progress']={'stage':stage,'current':current,'total':total,'message':message}
+                    try:
+                        result=reparse_page(self.store,cid,page_id,progress,job['cancel']);job.update(result,status='review' if result['reviewRequired'] else 'complete')
+                    except Exception as e:job.update(status='error',error=str(e) if isinstance(e,(ValueError,RuntimeError)) else type(e).__name__)
+                    finally:atomic_json(self.store.root/'jobs'/(cid+'.json'),self.public_job(job))
+                threading.Thread(target=repair_run,daemon=True).start();return self.json_response(202,{'id':cid})
             if path.startswith('/api/review/'):
                 with self.server.job_lock:
                     if any(j['status']=='running' for j in self.server.jobs.values()):raise ValueError('请等待编译结束后修正。')

@@ -50,7 +50,7 @@ class Model:
         text = data if isinstance(data,str) else json.dumps(data, ensure_ascii=False)
         b64 = base64.b64encode(Path(image).read_bytes()).decode() if image else None
         media_type=(mimetypes.guess_type(str(image))[0] or 'image/jpeg') if image else None
-        key = hashlib.sha256((('raw:' if not json_output else '') + self.base_url + self.model + system + text + (b64 or '') + (json.dumps(self.request_options,sort_keys=True) if getattr(self,'request_options',None) else '')).encode()).hexdigest()
+        key = hashlib.sha256((('raw:' if not json_output else '') + self.base_url + self.model + system + text + (b64 or '') + (getattr(self,'image_detail','') if image else '') + (json.dumps(self.request_options,sort_keys=True) if getattr(self,'request_options',None) else '')).encode()).hexdigest()
         target = self.cache / (key + '.json')
         if target.exists():
             try:
@@ -72,6 +72,7 @@ class Model:
             content = [{'type': 'text', 'text': text}]
             if b64:
                 content.append({'type': 'image_url', 'image_url': {'url': 'data:'+media_type+';base64,' + b64}})
+                if getattr(self,'image_detail',None):content[-1]['image_url']['detail']=self.image_detail
             if b64 and 'PaddleOCR' in self.model:content.reverse()
             body = {'model': self.model, 'max_tokens': max_tokens, 'messages': ([{'role':'system','content':system}] if system else [])+[{'role':'user','content':content}]}
             if json_output:body['response_format']={'type':'json_object'}

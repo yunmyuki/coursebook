@@ -14,7 +14,7 @@ def mark_figure_text(page):
     for u in page['units']:
         if u.get('reviewOnly') or u['type']=='table-cell' or not valid_box(u.get('position')):continue
         u.pop('figureIds',None)
-        refs=[f['id'] for f in page.get('figures',[]) if overlap(f['position'],u['position'])/max(area(u['position']),.000001)>=.6]
+        refs=[f['id'] for f in page.get('figures',[]) if not f.get('contextOnly') and overlap(f['position'],u['position'])/max(area(u['position']),.000001)>=.6]
         if refs:
             u['figureIds']=refs
             u.setdefault('contentOrigin','figure-transcription')

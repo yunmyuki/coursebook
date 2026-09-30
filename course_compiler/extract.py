@@ -10,7 +10,7 @@ from xml.etree import ElementTree as ET
 
 import pdfplumber
 import pypdfium2 as pdfium
-from .structure import typography,same_style,adjacent_heading,restore_heading_groups
+from .structure import restore_heading_groups
 from pypdf.errors import PyPdfError
 from pptx import Presentation
 
@@ -85,13 +85,14 @@ def convert_office(path, destination, extension='pdf'):
     return target
 
 
-def extract_pdf(path, output, file_id, progress=lambda *a: None):
+def extract_pdf(path, output, file_id, progress=lambda *a: None, page_numbers=None):
     file_dir = output / 'assets' / file_id
     file_dir.mkdir(parents=True, exist_ok=True)
     pages = []
     renderer = pdfium.PdfDocument(str(path))
     with pdfplumber.open(path) as doc:
         for index, p in enumerate(doc.pages):
+            if page_numbers is not None and index+1 not in page_numbers:continue
             page_id = f'{file_id}-page-{index+1:03d}'
             source = {'file': path.name, 'fileId': file_id, 'page': index+1}
             image_path = file_dir / f'page-{index+1:03d}.jpg'
@@ -101,36 +102,14 @@ def extract_pdf(path, output, file_id, progress=lambda *a: None):
                 bitmap.to_pil().convert('RGB').save(image_path, quality=88)
                 bitmap.close()
                 render_page.close()
-            # A generous y tolerance reunites subscripts and offset bullet glyphs.
-            lines = p.extract_text_lines(y_tolerance=8, x_tolerance=2, return_chars=True)
-            text_lines=[]
-            groups = []
-            for line in lines:
-                text = line['text']
-                if not text.strip():
-                    continue
-                box = [line['x0']/p.width, line['top']/p.height, line['x1']/p.width, line['bottom']/p.height]
-                style=typography(line.get('chars',[]))
-                text_lines.append({'text':text,'position':box,'typography':style})
-                is_bullet = bool(BULLET.match(text))
-                height = max(8, line['bottom']-line['top'])
-                continuation=False
-                if groups:
-                    prev = groups[-1]
-                    gap = line['top'] - prev['box'][3] * p.height
-                    aligned = abs(line['x0']-prev['box'][0]*p.width) < 45
-                    continuation=not is_bullet and prev['kind']=='title' and same_style(prev['style'],style) and adjacent_heading({'position':prev['box']},{'position':box})
-                    if not is_bullet and aligned and -5 <= gap < height*0.6 and prev['kind'] != 'title' and same_style(prev['style'],style):
-                        prev['text'] += '\n' + text
-                        prev['box'] = [min(prev['box'][0],box[0]),prev['box'][1],max(prev['box'][2],box[2]),box[3]]
-                        continue
-                kind = 'bullet' if is_bullet else ('title' if continuation or not groups and box[1] < .35 else 'paragraph')
-                groups.append({'text':text,'box':box,'kind':kind,'style':style})
+            from .layout import split_pdf_lines,group_pdf_lines
+            text_lines,layout=split_pdf_lines(p)
+            groups=group_pdf_lines(text_lines,layout,BULLET)
             units = []
             bullet_x = sorted(set(round(g['box'][0],2) for g in groups if g['kind']=='bullet'))
             for i,g in enumerate(groups,1):
                 text = g['text']
-                u = unit(page_id,i,text,g['kind'],source,g['box'],typography=g['style'])
+                u = unit(page_id,i,text,g['kind'],source,g['box'],typography=g['style'],readingOrder=i-1)
                 u['sourceText'] = re.sub(r'(?<=\w)-\n(?=[a-z])','',normalize(text)).replace('\n',' ')
                 if u['sourceText'] != normalize(text):
                     u['corrections'].append({'kind':'line-reconstruction','before':text,'after':u['sourceText']})
@@ -143,7 +122,7 @@ def extract_pdf(path, output, file_id, progress=lambda *a: None):
                 if link.get('uri'):
                     links.append({'url':link['uri'],'position':[link['x0']/p.width,link['top']/p.height,link['x1']/p.width,link['bottom']/p.height]})
             pages.append({'id':page_id,'number':index+1,'source':source,'title':units[0]['sourceText'] if units else f'Page {index+1}',
-                          'units':units,'rawText':raw_text,'rawUnits':[dict(u) for u in units],'textLines':text_lines,
+                          'layoutAnalysis':layout,'units':units,'rawText':raw_text,'rawUnits':[dict(u) for u in units],'textLines':text_lines,
                           'image':image_path.relative_to(output).as_posix(),'width':p.width,'height':p.height,
                           'links':links,'imageCount':len(p.images),'needsOCR':len(raw_text.strip())<50,
                           'imageRegions':[[max(0,im['x0']/p.width),max(0,im['top']/p.height),min(1,im['x1']/p.width),min(1,im['bottom']/p.height)] for im in p.images],

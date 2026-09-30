@@ -11,7 +11,7 @@ def apply_overrides(course,store_root):
     overrides=json.loads(path.read_text('utf-8'))
     for f in course['files']:
         for p in f['pages']:
-            needs_relink=False
+            needs_relink=bool(p.get('layoutQuality',{}).get('issues'))
             for u in p['units']:
                 if u['id'] in overrides.get('units',{}):u.update(overrides['units'][u['id']])
                 if u.get('reviewOnly') and u['id'] in overrides.get('units',{}):

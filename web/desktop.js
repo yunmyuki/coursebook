@@ -31,25 +31,45 @@ function captureProfile(){
   const previousUrl=p.baseUrl;
   for(const key of ['provider','baseUrl','model'])if($('#profile-'+key))p[key]=$('#profile-'+key).value.trim();
   p.apiKey=$('#profile-apiKey')?.value||'';
-  p.engine='vision';p.authScheme='Bearer';
+  p.engine=$('#profile-engine')?.value||p.engine||'vision';p.authScheme=$('#profile-authScheme')?.value||p.authScheme||'Bearer';
+  if($('#profile-ocrFlavor'))p.ocrFlavor=$('#profile-ocrFlavor').value;
+  if($('#profile-maxOcrRegions'))p.maxOcrRegions=Number($('#profile-maxOcrRegions').value);
   if(simple&&(!p.provider||p.baseUrl!==previousUrl))p.provider=providerForUrl(p.baseUrl);
 }
+document.addEventListener('change',e=>{if(e.target.id==='profile-engine'){captureProfile();renderProfile();}});
 function providerForUrl(url){try{return new URL(url).hostname==='api.siliconflow.cn'?'siliconflow':'openai';}catch{return 'openai';}}
-function isLegacyProfile(p){return p.engine&&p.engine!=='vision';}
+function isLegacyProfile(p){return p.engine&&!['vision','glm-ocr','paddle-layout','local-layout-ocr'].includes(p.engine);}
 function requireVisualProfile(p){if(isLegacyProfile(p))throw Error('请先将旧解析连接更换为支持图片和文字的视觉模型。');}
 function renderProfile(){
   const simple=settings.settingsMode==='simple';if(simple)role='parse';
   $('#settings-role-tabs').hidden=simple;
-  $('#settings-mode-help').textContent=simple?'解析、翻译和AI 助手共用此连接。请选择支持图片和文字的视觉模型。':'文档解析使用视觉模型；翻译和AI 助手可共用连接，也可单独选择文本模型。';
+  $('#settings-mode-help').textContent=simple?'解析、翻译和AI 助手共用此连接。请选择支持图片和文字的视觉模型。':'默认本地版面分析 + 云端区域 OCR；翻译和 AI 助手使用文本模型，可使用同一服务商的 API Key。';
   document.querySelectorAll('[data-settings-mode]').forEach(b=>b.classList.toggle('active',b.dataset.settingsMode===settings.settingsMode));
   const p=settings.profiles[role],inherit=!simple&&role!=='parse'&&p.inherit;
   const field=(key,label,placeholder='')=>`<label class="field">${label}<input id="profile-${key}" type="${key==='apiKey'?'password':key==='baseUrl'?'url':'text'}" value="${esc(p[key]||'')}" placeholder="${esc(placeholder)}" autocomplete="off"></label>`;
-  const presetsHtml=simple?'':`<div class="profile-preset">${(role==='parse'?[['sf','硅基流动 · Qwen']]:[['sf','硅基流动 · Qwen'],['aliyun','阿里云 · 通义'],['deepseek','DeepSeek']]).map(([id,name])=>`<button type="button" data-preset="${id}">${name}</button>`).join('')}</div>`;
+  const presetsHtml=simple?'':`<div class="profile-preset">${(role==='parse'?[['hybrid','本地版面 · 硅基 OCR（默认）'],['sf','硅基流动 · Qwen'],['glm','智谱 · GLM-OCR 版面服务']]:[['sf','硅基流动 · Qwen'],['aliyun','阿里云 · 通义'],['deepseek','DeepSeek']]).map(([id,name])=>`<button type="button" data-preset="${id}">${name}</button>`).join('')}</div>`;
   const legacy=`<p class="helper" id="legacy-profile-notice">此连接使用旧版专用解析服务。请更换为视觉模型，再填写服务地址与模型名称；原连接在保存前保持不变。</p><button type="button" class="quiet-button" data-preset="sf">改用视觉模型</button>`;
-  const fields=`${presetsHtml}${field('baseUrl','API 地址','https://api.siliconflow.cn/v1')}${field('apiKey','API Key',p.hasApiKey?'已保存；同一地址留空保留':'填写密钥')}${field('model','模型名称',role==='parse'?'支持图片和文字的模型':'支持文字的模型')}${!simple?`<details class="connection-options"><summary>接口兼容选项</summary><label class="field">接口格式<select id="profile-provider">${[['openai','OpenAI 兼容'],['siliconflow','硅基流动'],['anthropic','Anthropic 兼容']].map(([v,t])=>`<option value="${v}" ${p.provider===v?'selected':''}>${t}</option>`).join('')}</select></label></details>`:''}<p class="helper">${role==='parse'?'复杂页由视觉模型一次识别正文、表格和图片位置。图表从原页裁切，保留在正文中。':'本阶段只发送文字，可使用独立的文本模型。'} 密钥加密保存在本机。</p>`;
+  const engineField=!simple&&role==='parse'?`<label class="field">解析接口<select id="profile-engine">${[['local-layout-ocr','本地版面 + 云端区域 OCR（默认）'],['vision','通用视觉模型'],['glm-ocr','GLM-OCR · 完整版面解析'],['paddle-layout','PaddleOCR-VL · 完整解析服务']].map(([v,t])=>`<option value="${v}" ${p.engine===v?'selected':''}>${t}</option>`).join('')}</select></label>${p.engine==='paddle-layout'?`<label class="field">认证方式<select id="profile-authScheme"><option value="Bearer" ${p.authScheme!=='token'?'selected':''}>Bearer</option><option value="token" ${p.authScheme==='token'?'selected':''}>token</option></select></label><p class="helper">填写完整 /layout-parsing 服务地址；不能使用硅基流动的 OCR 聊天端点。</p>`:''}`:'';
+  const fields=`${presetsHtml}${engineField}${field('baseUrl','API 地址','https://api.siliconflow.cn/v1')}${field('apiKey','API Key',p.hasApiKey?'已保存；同一地址留空保留':'填写密钥')}${field('model','模型名称',role==='parse'?'支持图片和文字的模型':'支持文字的模型')}${!simple?`<details class="connection-options"><summary>接口兼容选项</summary><label class="field">接口格式<select id="profile-provider">${[['openai','OpenAI 兼容'],['siliconflow','硅基流动'],['anthropic','Anthropic 兼容']].map(([v,t])=>`<option value="${v}" ${p.provider===v?'selected':''}>${t}</option>`).join('')}</select></label></details>`:''}<p class="helper">${role==='parse'?(p.engine==='local-layout-ocr'?'本地版面与区域 OCR 分工；图表保留原图，翻译和 AI 助手单独配置文本模型。':p.engine==='vision'?'复杂页由视觉模型识别，另做本地版面校验；图表保留原图。':'使用完整文档解析接口返回文字、表格和区域位置；翻译与 AI 助手请单独配置文本模型。'):'本阶段只发送文字，可使用独立的文本模型。'} 密钥加密保存在本机。</p>`;
   $('#profile-fields').innerHTML=`${!simple&&role!=='parse'?`<label class="profile-inherit"><input id="inherit-profile" type="checkbox" ${inherit?'checked':''}>使用文档解析的同一连接</label>`:''}${inherit?'<p class="helper">本阶段共用文档解析连接，无需重复填写。</p>':isLegacyProfile(p)?legacy:fields}`;
   document.querySelectorAll('[data-role]').forEach(b=>b.classList.toggle('active',b.dataset.role===role));
+  if(!inherit&&p.engine==='local-layout-ocr'){
+    $('#profile-fields').insertAdjacentHTML('beforeend',`<label class="field">区域识别协议<select id="profile-ocrFlavor">${[['auto','根据模型名称自动选择'],['paddle','PaddleOCR-VL'],['glm','GLM-OCR · 区域聊天接口'],['deepseek','DeepSeek-OCR'],['vision','通用视觉模型']].map(([v,t])=>`<option value="${v}" ${(p.ocrFlavor||'auto')===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="field">单页 OCR 区域上限<input id="profile-maxOcrRegions" type="number" min="1" max="100" value="${Number(p.maxOcrRegions)||32}"></label><p class="helper">每页先在本机检测版面；可靠文字层直接复用，表格、公式和图像按区域识别。请求计入总上限。GLM 官方 /layout_parsing 属于完整服务，应选择上方对应接口。</p><div class="helper" id="layout-component-status" role="status">正在检查本地版面组件…</div><button type="button" id="install-layout-component" class="quiet-button">下载版面组件 · 131 MB</button> <label class="quiet-button">导入模型<input id="import-layout-component" type="file" accept=".onnx" hidden></label>`);
+    refreshLayoutComponent();
+  }
 }
+let layoutPoll;
+async function refreshLayoutComponent(){
+  clearTimeout(layoutPoll);
+  try{const s=await api('/api/layout-component'),el=$('#layout-component-status');if(!el)return;
+    el.textContent=s.downloading?`正在下载版面组件 · ${Math.round(s.downloadedBytes/s.bytes*100)}%`:s.error||(s.ready?'PP-DocLayoutV3 已就绪 · CPU 本地运行':!s.runtimeAvailable?'当前开发环境缺少 ONNX Runtime，请安装 requirements-layout.txt。':`尚未安装模型。可下载，或导入官方固定版本 inference.onnx。`);
+    $('#install-layout-component').disabled=Boolean(s.downloading||s.ready);
+    $('#import-layout-component').disabled=Boolean(s.downloading);
+    if(s.downloading)layoutPoll=setTimeout(refreshLayoutComponent,1500);
+  }catch(e){if($('#layout-component-status'))$('#layout-component-status').textContent=e.message;}
+}
+document.addEventListener('click',async e=>{if(e.target.id==='install-layout-component'){try{e.target.disabled=true;await api('/api/layout-component/install',{});refreshLayoutComponent();}catch(error){toast(error.message);e.target.disabled=false;}}});
+document.addEventListener('change',async e=>{if(e.target.id==='import-layout-component'&&e.target.files[0]){const file=e.target.files[0];try{e.target.disabled=true;const response=await fetch('/api/layout-component/import',{method:'POST',headers:{'X-Course-Token':token},body:file});const result=await response.json();if(!response.ok)throw Error(result.error);toast('版面组件校验通过，已安装。');}catch(error){toast(error.message);}finally{refreshLayoutComponent();}}});
 const searchServices={
   bocha:{name:'博查',url:'https://open.bochaai.com/',help:'返回网页摘要，使用博查的独立搜索密钥。'},
   baidu:{name:'百度 · 千帆',url:'https://ai.baidu.com/ai-doc/AppBuilder/pmaxd1hvy',help:'使用千帆 AppBuilder 的百度搜索 API Key，查询网页片段；不是百度地图或通用 AK / SK。'},
@@ -86,7 +106,7 @@ $('#test-search-connection').onclick=async()=>{
 };
 let advancedDraft=null;
 async function showSettings(){try{settings=await api('/api/settings');}catch(e){toast(e.message);return;}advancedDraft=null;role='parse';renderProfile();initSearchSettings();$('#connection-result').textContent='测试使用内置样本，会产生少量 API 用量。';$('#request-limit').value=settings.requestLimit||1000;$('#parse-mode').value=settings.parseMode;$('#workers').value=settings.workers;$('#settings-dialog').showModal();}
-const presets={sf:{provider:'siliconflow',baseUrl:'https://api.siliconflow.cn/v1',model:'Qwen/Qwen3.8-27B',engine:'vision'},aliyun:{provider:'openai',baseUrl:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus',engine:'vision'},deepseek:{provider:'openai',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',engine:'vision'}};
+const presets={hybrid:{provider:'siliconflow',baseUrl:'https://api.siliconflow.cn/v1',model:'PaddlePaddle/PaddleOCR-VL-1.5',engine:'local-layout-ocr',ocrFlavor:'paddle',maxOcrRegions:32},glm:{provider:'openai',baseUrl:'https://open.bigmodel.cn/api/paas/v4',model:'glm-ocr',engine:'glm-ocr'},sf:{provider:'siliconflow',baseUrl:'https://api.siliconflow.cn/v1',model:'Qwen/Qwen3.8-27B',engine:'vision'},aliyun:{provider:'openai',baseUrl:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus',engine:'vision'},deepseek:{provider:'openai',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',engine:'vision'}};
 async function startCompile(data){const result=await api('/api/compile',data);jobId=result.id;$('#import-dialog').close();showLibrary();$('#job-panel').hidden=false;$('#job-title').textContent=data.title||'正在处理课程';pollJob();}
 async function pollJob(){
   clearTimeout(pollTimer);
@@ -121,15 +141,21 @@ document.addEventListener('click',e=>{
   if(b.dataset.resume){const c=courses.find(c=>c.id===b.dataset.resume);startCompile({files:c.fileIds,title:c.title,explanations:false}).catch(e=>toast(e.message));return;}
   if(b.dataset.settingsMode){
     captureProfile();const mode=b.dataset.settingsMode;
-    if(mode==='simple'&&settings.settingsMode!=='simple')advancedDraft=structuredClone(settings.profiles);
-    else if(mode==='advanced'&&advancedDraft){settings.profiles={...advancedDraft,parse:settings.profiles.parse};advancedDraft=null;}
+    if(mode==='simple'&&settings.settingsMode!=='simple'){
+      advancedDraft=structuredClone(settings.profiles);
+      if(settings.profiles.parse.engine!=='vision'){
+        const text=settings.profiles.translation;
+        settings.profiles.parse=structuredClone(!text.inherit&&text.engine==='vision'?text:{...presets.sf,apiKey:'',hasApiKey:false});
+      }
+    }
+    else if(mode==='advanced'&&advancedDraft){settings.profiles=advancedDraft.parse.engine==='vision'?{...advancedDraft,parse:settings.profiles.parse}:advancedDraft;advancedDraft=null;}
     settings.settingsMode=mode;role='parse';renderProfile();return;
   }
   if(b.dataset.role){captureProfile();role=b.dataset.role;renderProfile();return;}
   if(b.dataset.preset&&presets[b.dataset.preset]){captureProfile();settings.profiles[role]={...presets[b.dataset.preset],inherit:false,apiKey:'',hasApiKey:false};renderProfile();}
 });
 $('#profile-fields').addEventListener('change',e=>{if(e.target.id==='inherit-profile'){captureProfile();renderProfile();}});
-$('#settings-form').addEventListener('submit',async e=>{e.preventDefault();try{captureProfile();captureSearchSettings();settings.webSearch={provider:searchProvider,profiles:searchDrafts};settings.requestLimit=Number($('#request-limit').value);if(settings.settingsMode==='simple')for(const r of ['translation','explanation'])settings.profiles[r]={inherit:true};for(const p of Object.values(settings.profiles))if(!p.inherit)requireVisualProfile(p);settings.workers=Number($('#workers').value);settings.parseMode=$('#parse-mode').value;settings=await api('/api/settings',settings);$('#settings-dialog').close();toast('模型配置已安全保存在本机。');}catch(e){toast(e.message);}});
+$('#settings-form').addEventListener('submit',async e=>{e.preventDefault();try{captureProfile();captureSearchSettings();settings.webSearch={provider:searchProvider,profiles:searchDrafts};settings.requestLimit=Number($('#request-limit').value);if(settings.settingsMode==='simple')for(const r of ['translation','explanation'])settings.profiles[r]={inherit:true};for(const p of Object.values(settings.profiles))if(!p.inherit)requireVisualProfile(p);if(settings.profiles.parse.engine!=='vision'&&(['translation','explanation'].some(r=>settings.profiles[r].inherit)||settings.settingsMode==='simple'))throw Error('专用文档解析不能用于翻译或 AI 助手，请在高级设置中分别配置文本模型。');settings.workers=Number($('#workers').value);settings.parseMode=$('#parse-mode').value;settings=await api('/api/settings',settings);$('#settings-dialog').close();toast('模型配置已安全保存在本机。');}catch(e){toast(e.message);}});
 $('#import-form').addEventListener('submit',async e=>{e.preventDefault();if(uploading)return;const b=$('#compile-start');b.disabled=true;try{if(additionCourseId){if(!additionPlan){additionPlan=await api('/api/materials/plan',{courseId:additionCourseId,files:[...selected]});renderAdditionPlan();}else await startAddition({...additionPlan,explanations:false});}else await startCompile({title:$('#course-title').value,files:[...selected],extractOnly:$('#extract-only').checked,explanations:false});}catch(e){toast(e.message);}finally{b.disabled=false;}});
 $('#file-list').insertAdjacentHTML('afterend','<section id="addition-plan" hidden></section>');
 $('#addition-plan').addEventListener('change',e=>{if(e.target.dataset.materialPosition!==undefined){additionPlan.materials[Number(e.target.dataset.materialPosition)].beforeChapterId=e.target.value;renderAdditionPlan();}});

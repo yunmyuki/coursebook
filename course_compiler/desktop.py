@@ -51,6 +51,17 @@ def main():
             fixture=root/'self-test.pdf';writer=PdfWriter();writer.add_blank_page(width=300,height=200);writer.write(fixture)
             pages=extract_pdf(fixture,root/'self-test-site','lecture-selftest')
             result={'ok':status['version']==__version__ and b'coursebook' in html and len(js)==len((__import__('course_compiler.paths',fromlist=['resource_root']).resource_root()/'web/desktop.js').read_bytes()) and len(pages)==1,'frozen':bool(getattr(sys,'frozen',False)),'pdfRendered':True,'secureKeyRoundTrip':protect(protect('self-test-key'),True)=='self-test-key','officeAvailable':bool(locate_converter()),'version':status['version']}
+            from .local_layout import detect,status as layout_status
+            from PIL import Image,ImageDraw
+            image=root/'layout-self-test.png';raster=Image.new('RGB',(1200,800),'white')
+            draw=ImageDraw.Draw(raster);draw.text((80,100),'Coursebook release validation',fill='black',font_size=50)
+            draw.text((80,250),'Preserve the full original paragraph.',fill='black',font_size=30)
+            raster.save(image);layout=detect(image,root/'layout-cache',root)
+            result['layoutReady']=layout_status(root)['ready']
+            result['layoutInference']=bool(layout['regions'])
+            result['layoutRegions']=len(layout['regions'])
+            result['defaultHybrid']=status['settings']['profiles']['parse']['engine']=='local-layout-ocr'
+            result['ok']=result['ok'] and result['layoutReady'] and result['layoutInference'] and result['defaultHybrid']
             if args.test_office:
                 from pptx import Presentation
                 from pptx.util import Inches

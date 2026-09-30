@@ -12,3 +12,5 @@
 - **PyInstaller**：打包工具；其 bootloader exception 允许分发打包应用，参见随包通知。
 
 系统 WebView2 没有随包分发。机器没有可用 WebView2 时，应用尝试使用默认浏览器。
+
+本版两个 Windows 包均包含 ONNX Runtime 1.23.2（MIT）、NumPy 2.3.5（BSD）与官方 PP-DocLayoutV3 ONNX（Apache-2.0）。模型权重未经修改，固定版本为 `46bbdf188bb0a772c08aed74882ce7e51a8f1ea6`，SHA256 为 `45bf71750b00739a41fc209f132eb104a4d6b5bb29483c9078164d8b87cf28ba`。模型卡、Apache 许可与署名随包保存在 `THIRD-PARTY-NOTICES/PP-DocLayoutV3/`，源码中的对应材料位于 `docs/licenses/PP-DocLayoutV3/`。源码包不包含大型权重，开发构建前须按开发文档安装校验后的模型。

@@ -61,7 +61,7 @@ def main():
     course['provenance']['demo']='Original public sample with fixed human translations; not a model-quality benchmark.'
     build_sections(course['files']);course['quality']=quality(course)
     atomic_json(site/'course.json',course);atomic_json(site/'quality-report.json',course['quality'])
-    dest=ROOT/'release/2.0.0/CourseCompiler-Demo.zip';dest.parent.mkdir(parents=True,exist_ok=True)
+    dest=ROOT/'release'/__import__('course_compiler').__version__/'CourseCompiler-Demo.zip';dest.parent.mkdir(parents=True,exist_ok=True)
     export_site(course,site,dest)
     print(json.dumps({'id':course['id'],'pages':3,'zip':str(dest),'units':sum(len(p['units']) for f in course['files'] for p in f['pages'])}),flush=True)
 

@@ -1,0 +1,3 @@
+# CPU layout runtime. Windows release bundles the fixed model; source builds install it separately.
+onnxruntime==1.23.2
+numpy==2.3.5

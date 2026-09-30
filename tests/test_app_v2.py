@@ -13,7 +13,7 @@ class AppTests(unittest.TestCase):
             server=make_server(0,d);thread=threading.Thread(target=server.serve_forever);thread.start();url=f'http://127.0.0.1:{server.server_port}'
             opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
             try:
-                status=json.load(opener.open(url+'/api/status'));self.assertEqual(status['version'],'2.0.0');self.assertNotIn('apiKey',json.dumps(status['settings']))
+                status=json.load(opener.open(url+'/api/status'));self.assertEqual(status['version'],__import__('course_compiler').__version__);self.assertNotIn('apiKey',json.dumps(status['settings']))
                 state={'courseId':'course-0123456789abcdef','savedAt':10,'notes':[{'id':'note','text':'A personal note'}]}
                 req=urllib.request.Request(url+'/api/learning/'+state['courseId'],data=json.dumps(state).encode(),headers={'X-Course-Token':TOKEN,'Content-Type':'application/json'})
                 self.assertTrue(json.load(opener.open(req))['saved']);self.assertEqual(json.load(opener.open(url+'/api/learning/'+state['courseId']))['state'],state)

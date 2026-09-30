@@ -1,0 +1,7 @@
+PP-DocLayoutV3 ONNX model
+Publisher: PaddlePaddle
+License: Apache-2.0 (as declared by the pinned official model card)
+Model: https://huggingface.co/PaddlePaddle/PP-DocLayoutV3_onnx
+Revision: 46bbdf188bb0a772c08aed74882ce7e51a8f1ea6
+SHA256: 45bf71750b00739a41fc209f132eb104a4d6b5bb29483c9078164d8b87cf28ba
+The official weights are distributed without modification. Coursebook uses independent ONNX Runtime preprocessing and result assembly.

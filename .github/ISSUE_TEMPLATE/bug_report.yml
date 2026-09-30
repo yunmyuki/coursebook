@@ -5,7 +5,7 @@ body:
     id: version
     attributes:
       label: 应用版本与 Windows 版本
-      placeholder: Course Compiler 2.0.0 / Windows 11 x64
+      placeholder: Course Compiler 2.1.0 / Windows 11 x64
     validations:
       required: true
   - type: textarea

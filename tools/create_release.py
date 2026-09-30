@@ -19,9 +19,9 @@ OUT=ROOT/'release'/__version__
 APP=OUT/'app/CourseCompiler'
 OFFICE=APP/'_internal/office'
 REPOSITORY='https://github.com/yunmyuki/coursebook'
-DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md')
-SOURCE_FILES=('README.md','LICENSE','.gitignore','requirements.txt','requirements-desktop.txt','requirements-lock.txt','requirements-dev.txt','desktop_main.py','package.json')
-SOURCE_TOOLS=('build_desktop.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py')
+DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md','hybrid-parsing-2026-09-30.md','hybrid-validation-2026-09-30.md')
+SOURCE_FILES=('README.md','LICENSE','.gitignore','requirements.txt','requirements-desktop.txt','requirements-lock.txt','requirements-dev.txt','requirements-layout.txt','desktop_main.py','package.json')
+SOURCE_TOOLS=('build_desktop.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py','benchmark_hybrid.py')
 FORBIDDEN={'.env','.env.local','settings.json','library.json','course.json','course-data.js'}
 
 def digest(path):
@@ -41,7 +41,7 @@ def copy(source,dest):
 def prepare():
     if not(APP/'CourseCompiler.exe').is_file():raise RuntimeError('Build the EXE first')
     notices=APP/'THIRD-PARTY-NOTICES'
-    names={'pywebview','pyinstaller','pythonnet','clr-loader','cffi','pypdf','pdfplumber','pdfminer-six','pdfminer.six','pypdfium2','pypdfium2-raw','python-pptx','pillow','lxml','bottle','proxy-tools','cryptography','charset-normalizer','numpy','typing-extensions','pycparser','packaging','setuptools','xlsxwriter'}
+    names={'pywebview','pyinstaller','pythonnet','clr-loader','cffi','pypdf','pdfplumber','pdfminer-six','pdfminer.six','pypdfium2','pypdfium2-raw','python-pptx','pillow','lxml','bottle','proxy-tools','cryptography','charset-normalizer','numpy','typing-extensions','pycparser','packaging','setuptools','xlsxwriter','onnxruntime','coloredlogs','flatbuffers','protobuf','sympy','humanfriendly','mpmath'}
     components={}
     for dist in importlib.metadata.distributions(path=[str(ROOT/'.build-deps'),str(Path(sys.prefix)/'Lib/site-packages')]):
         name=dist.metadata.get('Name','').lower().replace('_','-')
@@ -54,6 +54,9 @@ def prepare():
     for name in ('LICENSE.txt','LICENSE'):
         if (Path(sys.prefix)/name).is_file():copy(Path(sys.prefix)/name,notices/('Python-'+name))
     (APP/'components.json').write_text(json.dumps({'python':sys.version.split()[0],'packages':components},indent=2),'utf-8')
+    from course_compiler.local_layout import verify
+    verify(APP/'_internal/models/PP-DocLayoutV3/inference.onnx')
+    for p in (ROOT/'docs/licenses/PP-DocLayoutV3').glob('*'):copy(p,notices/'PP-DocLayoutV3'/p.name)
     source=ROOT/'build/office-component'
     manifest=json.loads((ROOT/'tmp/office-download/manifest.json').read_text('utf-8'))
     original=Path(manifest['file'])
@@ -83,6 +86,8 @@ def public_source():
     for name in ('reader.test.cjs','runtime.cjs'):copy(ROOT/'tests'/name,dest/'tests'/name)
     for name in SOURCE_TOOLS:copy(ROOT/'tools'/name,dest/'tools'/name)
     for name in DOCS:copy(ROOT/'docs'/name,dest/'docs'/name)
+    for p in (ROOT/'docs/licenses').rglob('*'):
+        if p.is_file():copy(p,dest/p.relative_to(ROOT))
     for p in (ROOT/'docs/images').glob('*'):copy(p,dest/'docs/images'/p.name)
     for p in (ROOT/'.github').rglob('*'):
         if p.is_file():copy(p,dest/p.relative_to(ROOT))
@@ -100,15 +105,18 @@ def archive(name,entries):
     return {'file':name,'bytes':path.stat().st_size,'sha256':digest(path),'url':REPOSITORY+'/releases/download/v'+__version__+'/'+name}
 
 def package():
-    for name in ('exe-self-test.json','exe-window-test.json','browser-smoke.json','python-tests.json'):
+    for name in ('exe-self-test.json','exe-window-test.json','browser-smoke.json','python-tests.json','source-tests.json'):
         report=json.loads((OUT/name).read_text('utf-8-sig'))
         if not report.get('ok'):raise RuntimeError('Release quality gate failed: '+name)
     if not json.loads((OUT/'exe-self-test.json').read_text('utf-8'))['officeRoundTrip']:raise RuntimeError('PPT validation required')
+    if not json.loads((OUT/'exe-self-test.json').read_text('utf-8')).get('layoutInference'):raise RuntimeError('Bundled ONNX inference validation required')
     for name in ('README.md','LICENSE'):copy(ROOT/name,APP/name)
     for name in DOCS:copy(ROOT/'docs'/name,APP/'docs'/name)
     for p in (ROOT/'docs/images').glob('*'):copy(p,APP/'docs/images'/p.name)
     (APP/'开始使用.txt').write_text('coursebook '+__version__+'\n\n解压整个文件夹，再双击 CourseCompiler.exe。不要只移动 exe。\n使用说明：docs/quickstart.md\n轻量版：处理 PDF；PPT/PPTX 需安装 LibreOffice 或添加 Office 组件。\n完整版：已包含 PPT/PPTX 转换组件。\n自己的模型 API 和密钥需在应用中配置；已有课程阅读和笔记无需联网。\n数据目录：%LOCALAPPDATA%\\Course Compiler\n更新时替换程序文件夹，保留数据目录。\n','utf-8-sig')
-    files=safe_files(APP);source=public_source();source_files=safe_files(source)
+    files=safe_files(APP);source=OUT/'github-source'
+    if not source.is_dir():raise RuntimeError('Stage and validate public_source() before packaging')
+    source_files=safe_files(source)
     full=[(p,'CourseCompiler/'+p.relative_to(APP).as_posix()) for p in files]
     lite=[(p,n) for p,n in full if not p.is_relative_to(OFFICE)]
     office=[(p,n) for p,n in full if p.is_relative_to(OFFICE)]

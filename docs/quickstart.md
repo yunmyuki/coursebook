@@ -2,12 +2,14 @@
 
 ## 安装与首次启动
 
-1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.0.0) 下载 Windows x64 完整版或轻量版。
+1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0) 下载 Windows x64 完整版或轻量版。
 2. 用 Windows 自带解压功能解压整个 ZIP。不要在压缩包中直接启动，不要单独移动 EXE。
 3. 双击 `CourseCompiler.exe`。默认数据保存在 `%LOCALAPPDATA%\Course Compiler`，与程序文件夹分离。
 4. 在「模型与设置」填写 API 地址、模型名与 API Key，再测试连接。
 
-共用模型需要支持图片与文字输入，服务应支持返回提示词要求的 JSON。纯文本模型只能用于高级设置里的翻译或助手环节。
+默认使用本地 PP-DocLayoutV3 分析版面、云端 PaddleOCR-VL-1.5 识别区域。两个 Windows 包均包含版面模型与 CPU 运行时，无需 Python 或单独下载权重。翻译与 AI 助手预选 Qwen 文本模型，请分别填写 API Key；同一服务商可以使用同一个 Key。模型组件应显示“已就绪”。
+
+升级时保留原有自定义配置。希望启用新模式，可在「高级配置 → 文档解析」选择「本地版面 · 硅基 OCR（默认）」；翻译和助手不可继承专用 OCR 模型。简单配置仍可共用一个支持图片与文字的通用视觉模型。
 
 ## 轻量版如何处理 PPT
 
@@ -16,7 +18,7 @@
 - 安装 [LibreOffice](https://www.libreoffice.org/download/download-libreoffice/)，然后重新启动应用。
 - 下载同版本 Office 组件 ZIP，将里面的 `CourseCompiler` 文件夹与轻量版同名文件夹合并。确认 `CourseCompiler\_internal\office\program\soffice.exe` 存在。
 
-完整版已包含该组件。应用没有在线自动下载组件的功能；它不会在后台安装软件。
+完整版已包含该组件。Office 组件不会在后台自动安装；版面模型另有显式下载/导入入口，正常发行包已包含它。
 
 ## 编译与复核
 
