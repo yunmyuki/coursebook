@@ -1,0 +1,24 @@
+name: Publish tested macOS release
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful macOS release workflow run ID
+        required: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify native artifacts and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAC_BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: python tools/publish_macos.py

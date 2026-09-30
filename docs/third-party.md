@@ -7,6 +7,7 @@
   - [对应版本源码](https://download.documentfoundation.org/libreoffice/src/26.8.0/)
   - 完整来源与省略文件清单在 `_internal/office/component-source.json`。
 - **Python、pywebview、pythonnet、clr-loader**：本地运行时与 Windows 窗口。
+- **PyObjC、系统 WebKit、keyring、cryptography**：macOS 原生窗口、钥匙串访问与配置加密。Mac 版不携带 Windows 运行库或 LibreOffice，组件清单和许可证位于应用包内 `Contents/Resources/THIRD-PARTY-NOTICES/`。
 - **pypdf、pdfplumber、pdfminer.six、pypdfium2 / PDFium、python-pptx、Pillow、lxml**：文档解析、转换与图片处理。
 - **KaTeX**：静态阅读器公式渲染，许可在 `_internal/web/vendor/katex/`。
 - **PyInstaller**：打包工具；其 bootloader exception 允许分发打包应用，参见随包通知。
