@@ -16,7 +16,7 @@ def main():
         folder=Path('release/mac-publish')/arch
         gh('run','download',run_id,'--repo',REPO,'--name','Coursebook-macOS-'+arch,'--dir',str(folder))
         report=json.loads((folder/('quality-'+arch+'.json')).read_text())
-        for key in ('ok','frozenSelfTest','keychain','nativeWindow','browserFlow','unpackedSelfTest'):assert report[key],key
+        for key in ('ok','frozenSelfTest','keychain','nativeWindow','browserFlow','unpackedSelfTest','httpsVerified'):assert report[key],key
         assert report['arch']==arch and report['version']=='2.1.0'
         package=folder/('Coursebook-macOS-'+arch+'.zip')
         with package.open('rb') as stream:sha=hashlib.file_digest(stream,'sha256').hexdigest()

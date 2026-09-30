@@ -20,7 +20,7 @@ def main():
         except PasswordDeleteError:pass
     for mode in ('self-test','window-test'):
         report=out/(mode+'.json')
-        subprocess.run([str(binary),'--'+mode,str(report),'--data-dir',str(test/mode)],check=True,timeout=180)
+        subprocess.run([str(binary),'--'+mode,str(report),'--data-dir',str(test/mode)]+(['--test-https'] if mode=='self-test' else []),check=True,timeout=180)
         assert json.loads(report.read_text())['ok'],mode
     # The existing integration test imports a synthetic course and exercises export/file://.
     subprocess.run(['gh','release','download','v2.1.0','--repo','yunmyuki/coursebook','--pattern','CourseCompiler-Demo.zip',
@@ -45,13 +45,13 @@ def main():
     subprocess.run(['codesign','--verify','--deep','--strict',str(unpacked/'Coursebook.app')],check=True)
     final_report=out/'unpacked-self-test.json'
     subprocess.run([str(unpacked/'Coursebook.app/Contents/MacOS/Coursebook'),'--self-test',str(final_report),
-                    '--data-dir',str(test/'unpacked-data')],check=True,timeout=180)
+                    '--data-dir',str(test/'unpacked-data'),'--test-https'],check=True,timeout=180)
     assert json.loads(final_report.read_text())['ok']
     with package.open('rb') as stream:digest=hashlib.file_digest(stream,'sha256').hexdigest()
     (out/('SHA256SUMS-'+arch+'.txt')).write_text(digest+'  '+package.name+'\n')
     (out/('quality-'+arch+'.json')).write_text(json.dumps({'ok':True,'arch':arch,'macOS':platform.mac_ver()[0],
         'version':__version__,'bytes':package.stat().st_size,'sha256':digest,'frozenSelfTest':True,
-        'keychain':True,'nativeWindow':True,'browserFlow':True,'unpackedSelfTest':True,
+        'keychain':True,'nativeWindow':True,'browserFlow':True,'unpackedSelfTest':True,'httpsVerified':True,
         'developerIdSigned':False,'notarized':False,'bundledOffice':False},indent=2))
 
 if __name__=='__main__':main()

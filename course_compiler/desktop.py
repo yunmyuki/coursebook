@@ -13,9 +13,13 @@ from .storage import atomic_json,protect
 from . import __version__
 
 def main():
+    if sys.platform=='darwin':
+        import certifi
+        os.environ.setdefault('SSL_CERT_FILE',certifi.where())
     parser=argparse.ArgumentParser()
     parser.add_argument('--self-test',metavar='REPORT')
     parser.add_argument('--test-office',action='store_true',help='Exercise PPTX and legacy PPT conversion during self-test')
+    parser.add_argument('--test-https',action='store_true',help='Verify bundled TLS trust against a public endpoint without credentials')
     parser.add_argument('--window-test',metavar='REPORT')
     parser.add_argument('--browser',action='store_true')
     parser.add_argument('--serve-only',action='store_true',help='Run the loopback service without opening a window (automation)')
@@ -76,6 +80,10 @@ def main():
             result['layoutRegions']=len(layout['regions'])
             result['defaultHybrid']=status['settings']['profiles']['parse']['engine']=='local-layout-ocr'
             result['ok']=result['ok'] and result['layoutReady'] and result['layoutInference'] and result['defaultHybrid']
+            if args.test_https:
+                with opener.open('https://api.github.com',timeout=30) as response:
+                    result['httpsVerified']=response.status==200
+                result['ok']=result['ok'] and result['httpsVerified']
             if args.test_office:
                 from pptx import Presentation
                 from pptx.util import Inches
