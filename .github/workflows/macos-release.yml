@@ -24,7 +24,10 @@ jobs:
         with:
           node-version: '22'
       - name: Install dependencies
+        env:
+          OPENSSL_STATIC: '1'
         run: |
+          export OPENSSL_DIR="$(brew --prefix openssl@3)"
           python -m pip install -r requirements-macos.txt reportlab==4.4.9
           npm install --no-save playwright
           npx playwright install chromium
