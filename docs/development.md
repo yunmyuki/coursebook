@@ -1,5 +1,13 @@
 # 开发、构建与发布
 
+## macOS 构建
+
+在对应架构的 Mac 上安装 Python 3.12，执行 `pip install -r requirements-macos.txt` 和 `python tools/build_macos.py`，生成 `release/macos/<架构>/Coursebook.app`。Intel 的 cryptography 若从源码构建，应设置 `OPENSSL_STATIC=1`、`OPENSSL_DIR=$(brew --prefix openssl@3)`，避免与 Python 的 OpenSSL 动态库冲突。
+
+GitHub 的 `macOS release` 工作流分别在 macos-14 arm64 与 macos-15-intel 上构建，运行源码回归、钥匙串、真实窗口、模型推理、HTTPS、阅读与离线导出测试。ZIP 使用 ditto 保留应用包权限和链接，再解压验证。通过两个架构的检查后，`Publish tested macOS release` 工作流接受构建 run ID，核对报告及 SHA256 后发布独立 Mac 标签，不覆盖已有 Windows 发行附件。
+
+当前是 ad-hoc 签名，无 Developer ID 和公证。正式签名需要维护者自己的 Apple 开发者证书与公证凭据，不能用测试签名代替。不要将这些凭据或用户课程提交到仓库。
+
 ## 本地开发
 
 使用 Windows x64、Python 3.12。`requirements.txt` 是运行依赖范围；`requirements-lock.txt` 记录本次构建的运行依赖版本。用虚拟环境安装依赖，避免混入其他项目库。

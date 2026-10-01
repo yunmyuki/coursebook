@@ -1,5 +1,7 @@
 # 快速开始
 
+Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应 Windows，编译、阅读与导出流程在两个平台一致。
+
 ## 安装与首次启动
 
 1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0) 下载 Windows x64 完整版或轻量版。
