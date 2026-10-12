@@ -1,33 +1,32 @@
-# Coursebook 2.1.0
+# Coursebook 2.2.0
 
-本版重点改进讲义解析。默认使用 **本地版面分析 + 云端区域 OCR**，并把所需的 CPU 运行时和版面模型装进 Windows 包。
+把课程讲义，变成可以读、查、问、记的双语学习空间。本版让第一次配置更容易，并让清洗和修正讲义成为阅读流程的一部分。
 
 ## 新增与改进
 
-- PP-DocLayoutV3 在本地识别区域和阅读顺序。每个非空页面都检查版面，可靠 PDF 文字层直接复用，其他区域按需调用 OCR。
-- 默认预选硅基 PaddleOCR-VL-1.5；翻译与 AI 助手分别使用文本模型。保留完整解析服务和通用视觉模型选项。
-- 改善三栏页面、跨行段落与标题的重组；遗漏文字保留来源，图表原图插入正文，并区分图中文字与普通正文。
-- 支持 OTSL、HTML 与 Markdown 表格，保留合并单元格；重解析的冲突读数保留在复核历史，不再占用同一表格位置。
-- 新增区域数上限、成功响应缓存和单次请求超时控制，修正格式时可复用已有响应。
-- 静态导出增加原文 `transcript.md`，保留内容锚点、图像和表格结构。
-- 延续双语布局、字体、搜索、高亮、笔记、按需 AI 助手及材料追加功能。
+- **新手引导**：四步介绍功能、API 地址、模型名和 Key、导入与复核。支持跳过、恢复进度和从侧栏重看；直接进入真实配置页，保存后继续教程。连接测试需主动点击。
+- **页面清洗**：检测同一文件中重复的页码、学校或版权等边缘固定标注，预览后勾选隐藏。支持恢复；保留原图、识别文本、稳定锚点，清洗结果同步到阅读、搜索和导出。
+- **直接编辑正文**：段落旁 ✎、页角「编辑」和顶部「编辑正文」均可进入；支持搜索，修改原文、译文、表格单元和 LaTeX 公式。
+- **可靠修正**：允许只保存原文，旧译文保留到历史并标为待更新；当前译文确实仍适用时可明确确认。未保存修改保护、其他窗口编辑冲突检测、笔记关联保留。
+- 改善窄屏原页预览与编辑操作。Windows 程序和下载包统一使用 Coursebook 名称，保留旧版数据目录以兼容升级。
 
 ## 下载与升级
 
-在 [v2.1.0 发布页](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0) 下载：
+[Windows 下载](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0) · [Mac 下载](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0-macos.1)
 
-- **完整版**：包含 PDF、PPTX、PPT 处理组件、本地版面模型和 ONNX CPU 运行时。
-- **轻量版**：包含 PDF 处理、本地版面模型和 ONNX CPU 运行时；PPT/PPTX 需要本机 LibreOffice 或单独的 Office 组件包。
-- **Office 组件 / 源码 / 示例课程**：按需下载。源码不包含大型模型权重。
+- **Windows 完整版**：PDF、PPTX、PPT 所需转换组件、本地版面模型和运行时齐备。
+- **Windows 轻量版**：保留本地模型与 PDF 能力；PPT/PPTX 需本机 LibreOffice 或另下载 Office 组件。
+- **Mac arm64 / x86_64**：分别支持 Apple Silicon macOS 14+ 和 Intel macOS 15+；PPT/PPTX 需安装 LibreOffice。
+- 另有源码与自制示例课程。示例采用固定人工译文，阅读无需 API Key。
 
-两个应用包首次使用均无需另下载版面模型，也无需安装 Python。包体较 2.0.0 增长的主要原因是随附官方版面权重；不包含云端 OCR 大模型。
-
-升级前关闭应用，将新版解压到新目录。原有数据目录和自定义 API 配置保留；希望启用新流程，请在「高级配置 → 文档解析」选择「本地版面 · 硅基 OCR（默认）」，并为翻译与助手保留文本模型。新用户默认启用该流程。
+关闭旧应用，将新版解压到新目录。Windows 双击 `Coursebook.exe`；不要单独移动程序或删除 `_internal`。已有课程、学习记录与自定义 API 配置保留；不要同时运行新旧版本访问同一数据目录。升级前建议备份数据。
 
 ## 验证与边界
 
-检查内容见 [发行质量记录](https://github.com/yunmyuki/coursebook/blob/v2.1.0/docs/release-quality.md)，校验值见发布附件 `SHA256SUMS.txt`。测试包含成品离线 ONNX 推理、PPT 往返转换、窗口启动、阅读、笔记持久化与静态导出。
+[质量记录](https://github.com/yunmyuki/coursebook/blob/v2.2.0/docs/release-quality.md) · [新功能说明](https://github.com/yunmyuki/coursebook/blob/v2.2.0/docs/iteration-onboarding-cleanup-editing.md)
 
-复杂扫描件、公式、图表与表格仍需复核。本轮真实区域 API 样本验证了硅基 PaddleOCR-VL-1.5；其他供应商及所有文档类型不具有相同实测覆盖。远程 API 可能限流或失败，费用由所选服务商决定。
+清洗采用保守规则：同一文件中至少三页、覆盖至少 60% 页面的可靠边缘候选才会列入建议；不会自动删除知识点。缺少位置或与正文混合的标注可能无法建议，需要人工编辑。
 
-当前仅发布 Windows x64，未做 Authenticode 代码签名；不提供自动更新。AI 助手需要运行本地应用，静态网站可独立离线阅读。本版未附带用户讲义、个人记录或 API Key。
+测试采用隔离课程和模拟服务验证新流程，不代表所有云端模型均已实测。复杂讲义仍需对照原页复核。正文编辑、页面清洗和 AI 助手需要本地应用；导出的静态网站可独立离线阅读。
+
+Windows 尚未 Authenticode 签名；Mac 为 ad-hoc 签名，尚未 Developer ID 签名及公证。包中不包含开发者讲义、个人记录或 API Key。各发行附件提供 SHA256 校验值。

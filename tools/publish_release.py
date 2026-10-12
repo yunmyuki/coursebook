@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -30,7 +31,7 @@ def main():
         with path.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
         if actual!=item['sha256']:raise RuntimeError('Asset checksum mismatch: '+path.name)
     print('Release asset checksums verified.',flush=True)
-    for report in ('exe-self-test.json','exe-window-test.json','browser-smoke.json','python-tests.json','source-tests.json','lite-self-test.json','lite-window-test.json'):
+    for report in ('exe-self-test.json','exe-window-test.json','browser-smoke.json','new-features-smoke.json','python-tests.json','source-tests.json','source-privacy-check.json','lite-self-test.json','lite-window-test.json'):
         if not json.loads((OUT/report).read_text('utf-8-sig')).get('ok'):raise RuntimeError('Quality gate failed: '+report)
     env=dict(os.environ,GIT_TERMINAL_PROMPT='0',GCM_INTERACTIVE='never')
     if run(['gh','auth','status'],env,check=False).returncode:
@@ -56,20 +57,37 @@ def main():
     run(['git','config','user.name','yunmyuki'],env,checkout)
     run(['git','config','user.email','yunmyuki@users.noreply.github.com'],env,checkout)
     run(['git','add','--all'],env,checkout)
-    run(['git','commit','-m','Release coursebook '+__version__],env,checkout)
+    run(['git','commit','-m','Release Coursebook '+__version__],env,checkout)
     run(git+['push','origin','HEAD:main'],env,checkout)
     print('Public source pushed to '+REPO,flush=True)
     run(['git','tag',TAG],env,checkout);run(git+['push','origin',TAG],env,checkout)
-    run(['gh','release','create',TAG,'--repo',REPO,'--verify-tag','--draft','--title','coursebook '+__version__,'--notes-file',str(ROOT/'docs/release-notes.md')],env,checkout)
+    run(['gh','release','create',TAG,'--repo',REPO,'--verify-tag','--draft','--title','Coursebook '+__version__,'--notes-file',str(ROOT/'docs/release-notes.md')],env,checkout)
+    run(['gh','workflow','run','macos-release.yml','--repo',REPO,'--ref','main'],env,checkout)
+    print('Native macOS builds dispatched.',flush=True)
     assets.extend([OUT/'SHA256SUMS.txt',ROOT/'docs/release-quality.md'])
     for asset in assets:
         print('Uploading '+asset.name,flush=True)
-        run(['gh','release','upload',TAG,str(asset),'--repo',REPO],env,checkout)
+        direct={k:v for k,v in env.items() if k.lower() not in ('http_proxy','https_proxy','all_proxy')}
+        run(['gh','release','upload',TAG,str(asset),'--repo',REPO],direct,checkout)
     # Verify uploaded bytes before making the release public.
     draft=json.loads(run(['gh','release','view',TAG,'--repo',REPO,'--json','assets'],env).stdout)
     uploaded={a['name']:a for a in draft['assets']}
     for asset in assets:
         if asset.name not in uploaded or uploaded[asset.name]['size']!=asset.stat().st_size:raise RuntimeError('Upload size mismatch: '+asset.name)
+    remote=json.loads(run(['gh','api','repos/'+REPO+'/releases'],env).stdout)
+    remote=next(r for r in remote if r['tag_name']==TAG)
+    remote_assets={a['name']:a for a in remote['assets']}
+    for asset in assets:
+        with asset.open('rb') as stream:sha=hashlib.file_digest(stream,'sha256').hexdigest()
+        if remote_assets[asset.name].get('digest')!='sha256:'+sha:raise RuntimeError('Remote checksum mismatch: '+asset.name)
+    head=run(['git','rev-parse','HEAD'],env,checkout).stdout.strip()
+    for _ in range(60):
+        checks=json.loads(run(['gh','run','list','--repo',REPO,'--workflow','checks.yml','--commit',head,'--json','status,conclusion'],env).stdout)
+        if checks and all(c['status']=='completed' for c in checks):
+            if any(c['conclusion']!='success' for c in checks):raise RuntimeError('GitHub source checks failed; release remains a draft')
+            break
+        time.sleep(15)
+    else:raise RuntimeError('GitHub source checks not complete; release remains a draft')
     run(['gh','release','edit',TAG,'--repo',REPO,'--draft=false','--latest'],env,checkout)
     published=json.loads(run(['gh','release','view',TAG,'--repo',REPO,'--json','url,isDraft,assets'],env).stdout)
     if published['isDraft'] or len(published['assets'])!=len(assets):raise RuntimeError('Release verification failed')

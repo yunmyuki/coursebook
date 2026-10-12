@@ -4,10 +4,10 @@ Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应
 
 ## 安装与首次启动
 
-1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0) 下载 Windows x64 完整版或轻量版。
+1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0) 下载 Windows x64 完整版或轻量版。
 2. 用 Windows 自带解压功能解压整个 ZIP。不要在压缩包中直接启动，不要单独移动 EXE。
-3. 双击 `CourseCompiler.exe`。默认数据保存在 `%LOCALAPPDATA%\Course Compiler`，与程序文件夹分离。
-4. 在「模型与设置」填写 API 地址、模型名与 API Key，再测试连接。
+3. 双击 `Coursebook.exe`。默认数据保存在 `%LOCALAPPDATA%\Course Compiler`，与程序文件夹分离。
+4. 跟随首次启动教程，在「模型与设置」填写 API 地址、模型名与 API Key，再主动测试连接。教程可以跳过，侧栏「使用教程」可重新查看。
 
 默认使用本地 PP-DocLayoutV3 分析版面、云端 PaddleOCR-VL-1.5 识别区域。两个 Windows 包均包含版面模型与 CPU 运行时，无需 Python 或单独下载权重。翻译与 AI 助手预选 Qwen 文本模型，请分别填写 API Key；同一服务商可以使用同一个 Key。模型组件应显示“已就绪”。
 
@@ -18,7 +18,7 @@ Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应
 任选一种方式：
 
 - 安装 [LibreOffice](https://www.libreoffice.org/download/download-libreoffice/)，然后重新启动应用。
-- 下载同版本 Office 组件 ZIP，将里面的 `CourseCompiler` 文件夹与轻量版同名文件夹合并。确认 `CourseCompiler\_internal\office\program\soffice.exe` 存在。
+- 下载同版本 Office 组件 ZIP，将里面的 `Coursebook` 文件夹与轻量版同名文件夹合并。确认 `Coursebook\_internal\office\program\soffice.exe` 存在。
 
 完整版已包含该组件。Office 组件不会在后台自动安装；版面模型另有显式下载/导入入口，正常发行包已包含它。
 
@@ -26,7 +26,11 @@ Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应
 
 新建课程，添加讲义，确认顺序，再启动编译。先用几页自有材料检查模型效果与费用，再处理整门课程。每次任务可以配置请求次数上限；失败、暂停后可以继续处理，已完成的页面优先复用缓存。
 
-进入课程后，用正文旁的复核入口对照原页修正。原始识别文本与修改历史保留。新材料可从课程库的「添加材料」入口导入，先预览、调整插入位置，再确认编译。
+进入课程后，点击段落旁的 ✎、页角「编辑」或顶部「编辑正文」，搜索并对照原页修改原文、译文、表格单元和公式。可只保存原文，旧译文会标为待更新；如果当前译文仍适用，可明确勾选确认。原始识别文本、修改历史和笔记关联保留。
+
+顶部「页面清洗」可预览重复页码、学校/版权等固定标注，勾选后隐藏，随时恢复。为避免误删，仅建议同一文件中至少三页、覆盖至少 60% 页面的边缘短文本；没有可靠位置或与正文混合的内容不自动建议。修改和清洗在应用中进行，再导出静态网站。
+
+新材料可从课程库的「添加材料」入口导入，先预览、调整插入位置，再确认编译。
 
 ## 提问、笔记与导出
 
@@ -53,4 +57,4 @@ Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应
 | 模型返回格式错误 | 确认解析模型支持图片输入；换模型后先用短文档测试 |
 | 启动失败 | 查看数据目录中的 `startup-error.json`，提交问题前移除私人信息 |
 
-下载后可在 PowerShell 使用 `Get-FileHash .\CourseCompiler-Windows-x64.zip -Algorithm SHA256`，与同版本 `SHA256SUMS.txt` 对照。
+下载后可在 PowerShell 使用 `Get-FileHash .\Coursebook-Windows-x64.zip -Algorithm SHA256`，与同版本 `SHA256SUMS.txt` 对照。

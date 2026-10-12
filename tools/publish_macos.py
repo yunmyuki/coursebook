@@ -2,8 +2,10 @@
 import hashlib,json,os,subprocess,sys
 from pathlib import Path
 
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+from course_compiler import __version__
 REPO='yunmyuki/coursebook'
-TAG='v2.1.0-macos.1'
+TAG='v'+__version__+'-macos.1'
 def gh(*args):return subprocess.check_output(['gh',*args],text=True).strip()
 def main():
     run_id=os.environ['MAC_BUILD_RUN_ID']
@@ -17,7 +19,7 @@ def main():
         gh('run','download',run_id,'--repo',REPO,'--name','Coursebook-macOS-'+arch,'--dir',str(folder))
         report=json.loads((folder/('quality-'+arch+'.json')).read_text())
         for key in ('ok','frozenSelfTest','keychain','nativeWindow','browserFlow','unpackedSelfTest','httpsVerified'):assert report[key],key
-        assert report['arch']==arch and report['version']=='2.1.0'
+        assert report['arch']==arch and report['version']==__version__
         package=folder/('Coursebook-macOS-'+arch+'.zip')
         with package.open('rb') as stream:sha=hashlib.file_digest(stream,'sha256').hexdigest()
         assert sha==report['sha256'] and package.stat().st_size==report['bytes']
@@ -26,7 +28,7 @@ def main():
         files += [str(package),str(folder/('quality-'+arch+'.json')),str(folder/('SHA256SUMS-'+arch+'.txt'))]
         summaries.append(f"- {arch}: {report['bytes']/1024**2:.1f} MiB；macOS {report['macOS']} 原生构建、窗口、钥匙串、模型推理与导出测试通过。")
     notes=Path('release/mac-publish/notes.md')
-    notes.write_text('''Coursebook 首个 macOS 发行版，内置本地版面模型与 Python 运行时。
+    notes.write_text('''Coursebook macOS 发行版，内置本地版面模型与 Python 运行时。新增新手配置教程、可恢复页脚清洗和正文直接编辑；仅修改原文时旧译文转为待更新。
 
 - Apple Silicon（M 系列）下载 `Coursebook-macOS-arm64.zip`，支持 macOS 14+。
 - Intel 下载 `Coursebook-macOS-x86_64.zip`，支持 macOS 15+。
@@ -36,7 +38,7 @@ def main():
 - 自动测试不替代所有 Mac 机型或讲义样本的实际验收，复杂页面仍应复核。
 
 '''+ '\n'.join(summaries)+f'\n\n[安装与使用说明](https://github.com/{REPO}/blob/{run["head_sha"]}/docs/macos.md) · [构建记录]({run["html_url"]})\n',encoding='utf-8')
-    gh('release','create',TAG,'--repo',REPO,'--target',run['head_sha'],'--title','Coursebook 2.1.0 · macOS','--draft','--notes-file',str(notes))
+    gh('release','create',TAG,'--repo',REPO,'--target',run['head_sha'],'--title','Coursebook '+__version__+' · macOS','--draft','--notes-file',str(notes))
     gh('release','upload',TAG,*files,str(Path('release/mac-publish/arm64/README-macOS.md')),'--repo',REPO)
     release=json.loads(gh('release','view',TAG,'--repo',REPO,'--json','id'))
     remote=json.loads(gh('api',f'repos/{REPO}/releases/{release["id"]}')) if str(release['id']).isdigit() else None

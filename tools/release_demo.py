@@ -35,8 +35,8 @@ CONTENT=[
   ('What would you like to investigate next?','接下来，你想进一步探究什么？')]
 ]
 
-def main():
-    output=ROOT/'tmp/release-demo';output.mkdir(parents=True,exist_ok=True)
+def build_demo(output,dest):
+    output=Path(output);output.mkdir(parents=True,exist_ok=True)
     source=output/'Learning with evidence.pdf';writer=PdfWriter()
     for rows in CONTENT:
         page=writer.add_blank_page(width=760,height=540)
@@ -61,8 +61,9 @@ def main():
     course['provenance']['demo']='Original public sample with fixed human translations; not a model-quality benchmark.'
     build_sections(course['files']);course['quality']=quality(course)
     atomic_json(site/'course.json',course);atomic_json(site/'quality-report.json',course['quality'])
-    dest=ROOT/'release'/__import__('course_compiler').__version__/'CourseCompiler-Demo.zip';dest.parent.mkdir(parents=True,exist_ok=True)
+    dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True)
     export_site(course,site,dest)
     print(json.dumps({'id':course['id'],'pages':3,'zip':str(dest),'units':sum(len(p['units']) for f in course['files'] for p in f['pages'])}),flush=True)
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    build_demo(ROOT/'tmp/release-demo',ROOT/'release'/__import__('course_compiler').__version__/'Coursebook-Demo.zip')

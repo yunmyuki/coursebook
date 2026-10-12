@@ -23,8 +23,7 @@ def main():
         subprocess.run([str(binary),'--'+mode,str(report),'--data-dir',str(test/mode)]+(['--test-https'] if mode=='self-test' else []),check=True,timeout=180)
         assert json.loads(report.read_text())['ok'],mode
     # The existing integration test imports a synthetic course and exercises export/file://.
-    subprocess.run(['gh','release','download','v2.1.0','--repo','yunmyuki/coursebook','--pattern','CourseCompiler-Demo.zip',
-                    '--dir',str(ROOT/'release'/__version__)],check=True)
+    subprocess.run([sys.executable,'tools/release_demo.py'],cwd=ROOT,check=True)
     server=subprocess.Popen([str(binary),'--serve-only','--port','8772','--data-dir',str(test/'reader')])
     try:
         opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))

@@ -28,6 +28,10 @@ class AppHandler(Handler):
             if path in ('/','/app','/compiler'):return self.serve_file(resource_root()/'web','desktop.html')
             if path=='/api/status':return self.json_response(200,{'token':TOKEN,'version':__version__,'dataPath':str(self.store.root),'converterAvailable':bool(locate_converter()),'files':self.files(),'courses':self.store.courses(),'settings':self.store.settings(public=True)})
             if path=='/api/settings':return self.json_response(200,self.store.settings(public=True))
+            if path=='/api/onboarding':return self.json_response(200,self.store.read('onboarding.json',{'state':'new','step':0}))
+            if path.startswith('/api/cleanup/'):
+                from .cleanup import preview
+                return self.json_response(200,preview(self.store,path.rsplit('/',1)[-1]))
             if path=='/api/layout-component':
                 from .local_layout import status
                 return self.json_response(200,{**status(self.store.root),**getattr(self.server,'layout_install',{})})
@@ -154,6 +158,16 @@ class AppHandler(Handler):
                     if any(j['status']=='running' for j in self.server.jobs.values()):raise ValueError('请等待编译结束后修正。')
                     from .review import review_course
                     return self.json_response(200,review_course(self.store,path.rsplit('/',1)[-1],data))
+            if path=='/api/onboarding':
+                if data.get('state') not in ('active','dismissed','complete') or type(data.get('step')) is not int or not 0<=data['step']<=3:raise ValueError('教程进度无效。')
+                progress={'state':data['state'],'step':data['step']}
+                atomic_json(self.store.root/'onboarding.json',progress)
+                return self.json_response(200,progress)
+            if path.startswith('/api/cleanup/'):
+                with self.server.job_lock:
+                    if any(j['status']=='running' for j in self.server.jobs.values()):raise ValueError('请等待编译结束后清洗。')
+                    from .cleanup import clean_course
+                    return self.json_response(200,clean_course(self.store,path.rsplit('/',1)[-1],data))
             if path=='/api/settings':return self.json_response(200,self.store.save_settings(data))
             if path=='/api/materials/plan':
                 from .materials import plan_addition

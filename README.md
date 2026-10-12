@@ -6,7 +6,7 @@
 
 PDF · PPTX · PPT → 完整原文 · 对照译文 · 原图表 · 按需 AI 助手
 
-[下载 Windows 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0) · [下载 Mac 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0-macos.1) · [快速开始](docs/quickstart.md) · [发布说明](docs/release-notes.md) · [反馈问题](https://github.com/yunmyuki/coursebook/issues)
+[下载 Windows 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0) · [下载 Mac 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0-macos.1) · [快速开始](docs/quickstart.md) · [发布说明](docs/release-notes.md) · [反馈问题](https://github.com/yunmyuki/coursebook/issues)
 
 ![Windows x64](https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square)
 ![MIT License](https://img.shields.io/badge/license-MIT-5645D4?style=flat-square)
@@ -28,25 +28,25 @@ Coursebook 是一款本地课程编译与阅读应用。导入一门课的多份
 
 ## 下载
 
-当前版本：**2.1.0**。提供 Windows 10/11 x64、macOS Apple Silicon 与 Intel 版本。精确文件大小与校验值见对应 Release 附件。
+当前版本：**2.2.0**。提供 Windows 10/11 x64、macOS Apple Silicon 与 Intel 版本。精确文件大小与校验值见对应 Release 附件。
 
 | 发行包 | 适合你，如果… | 下载 |
 | --- | --- | --- |
-| 完整版 | 需要直接处理 PDF、PPTX、PPT，无需另装转换工具 | [Windows x64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0/CourseCompiler-Windows-x64.zip) |
-| 轻量版 | 主要处理 PDF，或电脑已安装 LibreOffice | [Windows x64 Lite ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0/CourseCompiler-Windows-x64-Lite.zip) |
-| Office 组件 | 想为轻量版补充 PPT/PPTX 转换能力 | [Office ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0/CourseCompiler-Office-Windows-x64.zip) |
-| 源码 | 希望自行运行、修改或构建 | [Source ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0/CourseCompiler-Source.zip) |
-| Mac · Apple Silicon | M 系列芯片，macOS 14 或更高 | [Coursebook arm64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0-macos.1/Coursebook-macOS-arm64.zip) |
-| Mac · Intel | Intel 芯片，macOS 15 或更高 | [Coursebook x86_64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0-macos.1/Coursebook-macOS-x86_64.zip) |
+| 完整版 | 需要直接处理 PDF、PPTX、PPT，无需另装转换工具 | [Windows x64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0/Coursebook-Windows-x64.zip) |
+| 轻量版 | 主要处理 PDF，或电脑已安装 LibreOffice | [Windows x64 Lite ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0/Coursebook-Windows-x64-Lite.zip) |
+| Office 组件 | 想为轻量版补充 PPT/PPTX 转换能力 | [Office ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0/Coursebook-Office-Windows-x64.zip) |
+| 源码 | 希望自行运行、修改或构建 | [Source ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0/Coursebook-Source.zip) |
+| Mac · Apple Silicon | M 系列芯片，macOS 14 或更高 | [Coursebook arm64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0-macos.1/Coursebook-macOS-arm64.zip) |
+| Mac · Intel | Intel 芯片，macOS 15 或更高 | [Coursebook x86_64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0-macos.1/Coursebook-macOS-x86_64.zip) |
 
-Mac 版解压后将 **Coursebook.app** 拖到「应用程序」。内置版面模型与运行时；PPT/PPTX 渲染需另装 LibreOffice。首版尚未取得 Apple Developer ID 签名和公证，首次打开方式、钥匙串及数据目录见 [Mac 安装说明](docs/macos.md)。Mac 对应源码可从 [Mac Release](https://github.com/yunmyuki/coursebook/releases/tag/v2.1.0-macos.1) 的 Source code 附件下载。
+Mac 版解压后将 **Coursebook.app** 拖到「应用程序」。内置版面模型与运行时；PPT/PPTX 渲染需另装 LibreOffice。首版尚未取得 Apple Developer ID 签名和公证，首次打开方式、钥匙串及数据目录见 [Mac 安装说明](docs/macos.md)。Mac 对应源码可从 [Mac Release](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0-macos.1) 的 Source code 附件下载。
 
 
-想先体验阅读？[下载自制示例课程](https://github.com/yunmyuki/coursebook/releases/download/v2.1.0/CourseCompiler-Demo.zip)，直接解压打开 `index.html`，或在应用中导入。示例译文为人工编写，无需 API 即可体验阅读。
+想先体验阅读？[下载自制示例课程](https://github.com/yunmyuki/coursebook/releases/download/v2.2.0/Coursebook-Demo.zip)，直接解压打开 `index.html`，或在应用中导入。示例译文为人工编写，无需 API 即可体验阅读。
 
-解压整个文件夹，双击 `CourseCompiler.exe`。两个 Windows 包均自带 Python、ONNX CPU 运行时和 PP-DocLayoutV3 权重，首次使用无需另下载版面模型；请保留 `_internal` 文件夹。窗口优先使用系统 WebView2，无法启动时会在默认浏览器打开本地界面。
+解压整个文件夹，双击 `Coursebook.exe`。两个 Windows 包均自带 Python、ONNX CPU 运行时和 PP-DocLayoutV3 权重，首次使用无需另下载版面模型；请保留 `_internal` 文件夹。窗口优先使用系统 WebView2，无法启动时会在默认浏览器打开本地界面。
 
-本次更新：复杂分栏与跨行段落重组、表格结构识别、图表原图保留、识别冲突复核与原文 Markdown 导出。已有用户的自定义模型配置保留，可在「高级配置 → 文档解析」选择新的默认预设。
+本次更新：新增可跳过的新手教程，帮助配置模型与 API Key；重复页码、固定页眉页脚可预览后批量隐藏并随时恢复；可直接编辑原文、译文、表格单元与公式，保留历史和笔记关联。只改原文时，旧译文标为待更新。已有课程与自定义模型配置保留。
 
 ## 从讲义到学习空间
 

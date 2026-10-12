@@ -37,6 +37,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_*.py'
           npm run check
           node tests/reader.test.cjs
+          node tests/onboarding_cleanup_browser.cjs
       - name: Build native application
         run: python tools/build_macos.py
       - name: Verify and package

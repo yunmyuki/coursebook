@@ -12,7 +12,7 @@ const {chromium,chromePath}=require('../tests/runtime.cjs');
   let status=await(await page.request.get(base+'/api/status')).json();assert.equal(status.version,version);
   assert.equal(status.courses.length,0,'Use a fresh isolated workspace');
   for(const p of Object.values(status.settings.profiles))assert.equal(p.hasApiKey,false);
-  const zip=fs.readFileSync(`release/${version}/CourseCompiler-Demo.zip`);
+  const zip=fs.readFileSync(`release/${version}/Coursebook-Demo.zip`);
   const imported=await page.request.post(base+'/api/import-course',{headers:{'X-Course-Token':status.token,'Content-Type':'application/zip'},data:zip});assert.equal(imported.ok(),true);
   status=await(await page.request.get(base+'/api/status')).json();assert.equal(status.courses.length,1);
   const cid=status.courses[0].id;

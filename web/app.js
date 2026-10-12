@@ -107,7 +107,7 @@
       <div class="source-copy" data-layer="source" lang="en">${source}</div>${translated}
       ${u.uncertain?'<span class="uncertain-tag" title="识别存疑，请对照原页" aria-label="识别存疑，请对照原页">!</span>':''}
 
-      <div class="unit-actions"><button data-ask="${esc(u.id)}" title="用此内容向助手提问" aria-label="用此内容向助手提问">✧</button><button data-note="${esc(u.id)}" title="为此段落写笔记" aria-label="为此段落写笔记">＋</button><button data-bookmark="${esc(u.id)}" title="收藏此段落" aria-label="收藏此段落">☆</button><button data-copy="${esc(u.id)}" title="复制定位链接" aria-label="复制定位链接">↗</button><button data-raw="${esc(u.id)}" title="查看识别原文与修正记录" aria-label="查看识别原文与修正记录">≡</button></div>
+      <div class="unit-actions">${hostToken&&!u.reviewOnly?`<button data-review-unit="${esc(u.id)}" title="编辑原文与译文" aria-label="编辑正文">✎</button>`:''}<button data-ask="${esc(u.id)}" title="用此内容向助手提问" aria-label="用此内容向助手提问">✧</button><button data-note="${esc(u.id)}" title="为此段落写笔记" aria-label="为此段落写笔记">＋</button><button data-bookmark="${esc(u.id)}" title="收藏此段落" aria-label="收藏此段落">☆</button><button data-copy="${esc(u.id)}" title="复制定位链接" aria-label="复制定位链接">↗</button><button data-raw="${esc(u.id)}" title="查看识别原文与修正记录" aria-label="查看识别原文与修正记录">≡</button></div>
     </div>`;
   }
   function headingHTML(group) {
@@ -115,7 +115,7 @@
     const pieces=layer=>members.map((u,index)=>{
       const text=layer==='translation'&&u.translationStatus!=='complete'?'译文待核对':drawText(u,layer);
       const id=layer==='source'?u.id:'translation-'+u.id;
-      const actions=`<span class="unit-actions"><button data-note="${esc(u.id)}" aria-label="为标题写笔记">＋</button><button data-bookmark="${esc(u.id)}" aria-label="收藏标题">☆</button><button data-copy="${esc(u.id)}" aria-label="复制标题定位">↗</button><button data-raw="${esc(u.id)}" aria-label="查看此处识别记录">≡</button></span>`;
+      const actions=`<span class="unit-actions">${hostToken?`<button data-review-unit="${esc(u.id)}" aria-label="编辑标题">✎</button>`:''}<button data-note="${esc(u.id)}" aria-label="为标题写笔记">＋</button><button data-bookmark="${esc(u.id)}" aria-label="收藏标题">☆</button><button data-copy="${esc(u.id)}" aria-label="复制标题定位">↗</button><button data-raw="${esc(u.id)}" aria-label="查看此处识别记录">≡</button></span>`;
       const previous=members[index-1];const join=index&&(layer==='source'||!/[\u3400-\u9fff]$/.test(previous?.translatedText||'')||!/^\p{Script=Han}/u.test(u.translatedText||''))?' ':'';
       return `${group.lineBreakBefore?.includes(u.id)?'<br>':join}<span class="heading-piece" id="${esc(id)}" data-unit="${esc(u.id)}" tabindex="-1"><span class="${layer==='source'?'source':'translation'}-copy" data-layer="${layer}">${text}</span>${actions}</span>`;
     }).join('');
@@ -142,7 +142,7 @@
   function pageHTML(p) {
     const renderedTables=new Set(),renderedHeadings=new Set(),renderedFigureText=new Set(),renderedFigures=new Set();
     const headingGroups=new Map((p.headingGroups||[]).map(g=>[g.id,g]));
-    const main=p.units.filter(u=>!u.reviewOnly),candidates=p.units.filter(u=>u.reviewOnly);
+    const main=p.units.filter(u=>!u.reviewOnly),candidates=p.units.filter(u=>u.reviewOnly&&!u.cleanupHidden),cleaned=p.units.filter(u=>u.cleanupHidden);
     const flow=[...main,...(p.figures||[]).map(f=>({...f,isFigure:true}))];
     const ordered=flow.filter(u=>Number.isFinite(u.readingOrder));
     const order=u=>Number.isFinite(u.readingOrder)?u.readingOrder:ordered.length?ordered.reduce((a,b)=>Math.abs((a.position?.[1]??0)-(u.position?.[1]??0))<Math.abs((b.position?.[1]??0)-(u.position?.[1]??0))?a:b).readingOrder+.5:(u.position?.[1]??2);
@@ -169,10 +169,10 @@
     const incomplete=p.visualStatus!=='complete'||p.transcriptionStatus!=='complete'||main.some(u=>u.translationStatus!=='complete');
     const hasUncertainty=main.some(u=>u.uncertain);
     return `<section class="slide" id="${esc(p.id)}" data-page="${esc(p.id)}" aria-label="${esc(pageLabel(p))}">
-      <div class="slide-header"><span class="slide-number">PAGE ${String(p.number).padStart(3,'0')}</span><span class="slide-divider">/</span><span class="slide-source" title="${esc(p.source.file)}">${esc(p.source.file)}</span><div class="slide-tools"><button data-source="${esc(p.id)}">查看原页 ↗</button><button data-bookmark="${esc(p.id)}" class="${bookmark?'saved':''}" aria-label="${bookmark?'移除':'添加'}页面书签">${bookmark?'★':'☆'}</button><button data-read="${esc(p.id)}" aria-label="${isRead?'标记为未读':'标记为已学'}" title="${isRead?'已学完此页':'标记学完此页'}"><span class="read-check ${isRead?'checked':''}">${isRead?'✓':''}</span></button></div></div>
+      <div class="slide-header"><span class="slide-number">PAGE ${String(p.number).padStart(3,'0')}</span><span class="slide-divider">/</span><span class="slide-source" title="${esc(p.source.file)}">${esc(p.source.file)}</span><div class="slide-tools">${hostToken?`<button data-edit-page="${esc(p.id)}">编辑</button>`:''}<button data-source="${esc(p.id)}">查看原页 ↗</button><button data-bookmark="${esc(p.id)}" class="${bookmark?'saved':''}" aria-label="${bookmark?'移除':'添加'}页面书签">${bookmark?'★':'☆'}</button><button data-read="${esc(p.id)}" aria-label="${isRead?'标记为未读':'标记为已学'}" title="${isRead?'已学完此页':'标记学完此页'}"><span class="read-check ${isRead?'checked':''}">${isRead?'✓':''}</span></button></div></div>
       ${units||'<div class="page-status">此页为图片内容，文字识别待完成。原始页面已保留如下。</div>'}
       ${p.links?.some(l=>safeUrl(l.url))?`<div class="small muted">讲义中的链接：${p.links.filter(l=>safeUrl(l.url)).map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.url)} ↗</a>`).join(' · ')}</div>`:''}
-      <details ${!main.length?'open':''}><summary class="original-toggle">原始页面 · 视觉核对</summary><figure class="original-preview"><img src="${esc(p.image)}" width="${Number(p.width)||612}" height="${Number(p.height)||792}" loading="lazy" alt="${esc(p.source.file)} 第 ${p.number} 页原始图像" data-source="${esc(p.id)}"><figcaption>原讲义截图 · ${esc(pageLabel(p))} · 原图中的信息以讲义为准</figcaption></figure></details>${review}
+      <details ${!main.length?'open':''}><summary class="original-toggle">原始页面 · 视觉核对</summary><figure class="original-preview"><img src="${esc(p.image)}" width="${Number(p.width)||612}" height="${Number(p.height)||792}" loading="lazy" alt="${esc(p.source.file)} 第 ${p.number} 页原始图像" data-source="${esc(p.id)}"><figcaption>原讲义截图 · ${esc(pageLabel(p))} · 原图中的信息以讲义为准</figcaption></figure></details>${review}${cleaned.length?`<details class="ocr-review cleanup-archive"><summary>已隐藏页眉页脚 · ${cleaned.length} 项</summary>${cleaned.map(unitHTML).join('')}</details>`:''}
     </section>`;
   }
   function renderChapter(chapterId) {
@@ -281,7 +281,7 @@
     if(!query){$('#search-results').innerHTML='<div class="empty-state">输入概念、关键词或一句原文，找到它在课程中的位置。</div>';return;}
     const terms=query.split(/\s+/);
     const results=[];
-    for(const u of unitMap.values())if(terms.every(t=>(u.sourceText+' '+(u.translatedText||'')).toLocaleLowerCase().includes(t)))results.push({id:u.id,text:u.sourceText,translation:u.translatedText,page:anchorMap.get(u.id),type:'原文 / 译文'});
+    for(const u of unitMap.values())if(!u.cleanupHidden&&terms.every(t=>(u.sourceText+' '+(u.translatedText||'')).toLocaleLowerCase().includes(t)))results.push({id:u.id,text:u.sourceText,translation:u.translatedText,page:anchorMap.get(u.id),type:'原文 / 译文'});
 
     $('#search-results').innerHTML=`<p class="small muted" style="padding:8px 14px">找到 ${results.length} 处结果${results.length>100?' · 显示前 100 条，请缩小搜索范围':''}</p>`+results.slice(0,100).map(r=>`<button class="search-result" data-search-result="${esc(r.id)}"><span class="result-meta">${esc(pageLabel(r.page))} · ${esc(r.type)}</span><span class="result-text">${esc(r.text)}</span>${r.translation?`<span class="result-text muted">${esc(r.translation)}</span>`:''}</button>`).join('');
   }
@@ -290,7 +290,7 @@
     const q=C.quality;
     const processed=q.visualValidated===q.pages&&q.transcriptionValidated===q.pages&&(q.readingTranslated??q.translated)===(q.readingUnits??q.units);
     const stats=[[q.pages,'原始页数'],[q.readingUnits??q.units,'正文内容单元'],[`${q.readingTranslated??q.translated}/${q.readingUnits??q.units}`,'正文翻译配对'],[`${q.visualValidated}/${q.pages}`,'视觉校验'],[`${q.transcriptionValidated}/${q.pages}`,'转录核对'],[q.readingUncertain??q.uncertain,'正文待复核单元']];
-    $('#quality-body').innerHTML=`<p>${q.complete?'所有页面已通过处理流程。':processed?'全部页面的处理步骤已完成，仍有下列疑点或结构问题需要复核。':'此课程仍有未完成的识别、核对或翻译步骤。'}自动校验不等于人工逐字确认；存疑内容应对照原页复核。</p><div class="quality-grid">${stats.map(([v,k])=>`<div class="quality-stat"><strong>${esc(v)}</strong><span>${esc(k)}</span></div>`).join('')}</div><p class="small">${q.formulaCount} 个已识别公式 · ${q.tableCells} 个表格单元格（含历史记录） · ${q.explanations} 条历史解析记录（保留旧定位）<br>另保留 ${q.ocrCandidates||0} 个历史识别记录，其中 ${q.unresolvedCandidates||0} 个尚未处理；已替换或确认重复的记录不计入正文翻译配对。<br>原文 ID 保留、来源引用、译文配对与解析定位：${q.errors.length?esc(q.errors.join('；')):'结构检查通过'}</p><div class="quality-issues">${allPages.filter(p=>p.warnings.length||p.visualStatus!=='complete'||p.transcriptionStatus!=='complete'||p.units.some(u=>!u.reviewOnly&&(u.uncertain||u.translationStatus!=='complete')||u.reviewOnly&&!u.supersededBy&&!u.rejectedArtifact)).map(p=>`<button data-quality-jump="${esc(p.id)}">Page ${p.number} · ${esc(p.title)}<br>${esc(p.warnings.join('；')||'存在待核对或未译内容')}</button>`).join('')||'暂无页面级警告。'}</div>`;
+    $('#quality-body').innerHTML=`<p>${q.complete?'所有页面已通过处理流程。':processed?'全部页面的处理步骤已完成，仍有下列疑点或结构问题需要复核。':'此课程仍有未完成的识别、核对或翻译步骤。'}自动校验不等于人工逐字确认；存疑内容应对照原页复核。</p><div class="quality-grid">${stats.map(([v,k])=>`<div class="quality-stat"><strong>${esc(v)}</strong><span>${esc(k)}</span></div>`).join('')}</div><p class="small">${q.formulaCount} 个已识别公式 · ${q.tableCells} 个表格单元格（含历史记录） · ${q.explanations} 条历史解析记录（保留旧定位）<br>另保留 ${q.ocrCandidates||0} 个历史识别记录，其中 ${q.unresolvedCandidates||0} 个尚未处理；已替换或确认重复的记录不计入正文翻译配对。<br>原文 ID 保留、来源引用、译文配对与解析定位：${q.errors.length?esc(q.errors.join('；')):'结构检查通过'}</p><div class="quality-issues">${allPages.filter(p=>p.warnings.length||p.visualStatus!=='complete'||p.transcriptionStatus!=='complete'||p.units.some(u=>!u.reviewOnly&&(u.uncertain||u.translationStatus!=='complete')||u.reviewOnly&&!u.cleanupHidden&&!u.supersededBy&&!u.rejectedArtifact)).map(p=>`<button data-quality-jump="${esc(p.id)}">Page ${p.number} · ${esc(p.title)}<br>${esc(p.warnings.join('；')||'存在待核对或未译内容')}</button>`).join('')||'暂无页面级警告。'}</div>`;
     $('#quality-dialog').showModal();
   }
   function download(name,text,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}

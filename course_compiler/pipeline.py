@@ -276,9 +276,10 @@ def quality(course):
            'warnings':sum(len(p['warnings']) for p in pages),'errors':errors,'figures':len(figure_ids)}
     active=[u for u in units if not u.get('reviewOnly')]
     stats.update(readingUnits=len(active),readingTranslated=sum(u.get('translationStatus')=='complete' for u in active),
-                 ocrCandidates=sum(bool(u.get('reviewOnly')) for u in units),
+                 ocrCandidates=sum(bool(u.get('reviewOnly')) and not u.get('cleanupHidden') for u in units),
+                 cleanedUnits=sum(bool(u.get('cleanupHidden')) for u in units),
                  readingUncertain=sum(bool(u.get('uncertain')) for u in active))
-    stats['unresolvedCandidates']=sum(bool(u.get('reviewOnly')) and not u.get('supersededBy') and not u.get('rejectedArtifact') for u in units)
+    stats['unresolvedCandidates']=sum(bool(u.get('reviewOnly')) and not u.get('supersededBy') and not u.get('rejectedArtifact') and not u.get('cleanupHidden') for u in units)
     stats['complete']=not errors and stats['readingTranslated']==len(active) and not stats['readingUncertain'] and not stats['unresolvedCandidates'] and stats['visualValidated']==len(pages) and stats['transcriptionValidated']==len(pages)
     stats['reviewPages']=sum(bool(p.get('reviewRequired')) for p in pages)
     if stats['reviewPages']:stats['complete']=False
