@@ -49,16 +49,16 @@ class CleanupEditingTests(unittest.TestCase):
             store=Store(d);c=fixture();site=store.course_path(c['id']);atomic_json(site/'course.json',c)
             pr=preview(store,c['id']);data={'revision':pr['revision'],'action':'hide','groupIds':[pr['groups'][0]['id']]}
             self.assertEqual(clean_course(store,c['id'],data)['hiddenCount'],5)
-            saved=json.loads((site/'course.json').read_text());u=saved['files'][0]['pages'][0]['units'][1]
+            saved=json.loads((site/'course.json').read_text(encoding='utf-8'));u=saved['files'][0]['pages'][0]['units'][1]
             self.assertTrue(u['cleanupHidden']);self.assertEqual(u['rawText'],c['files'][0]['pages'][0]['units'][1]['rawText'])
             self.assertEqual(saved['quality']['unresolvedCandidates'],0)
-            self.assertNotIn('FUDAN',(site/'transcript.md').read_text())
+            self.assertNotIn('FUDAN',(site/'transcript.md').read_text(encoding='utf-8'))
             with self.assertRaises(ValueError):clean_course(store,c['id'],data)
             apply_overrides(c,Path(d));self.assertTrue(c['files'][0]['pages'][0]['units'][1]['cleanupHidden'])
             c['files'][0]['pages'][0]['units'][1]['sourceText']='Changed content';apply_cleanup(c,Path(d))
             self.assertFalse(c['files'][0]['pages'][0]['units'][1].get('cleanupHidden'))
             clean_course(store,c['id'],{'revision':preview(store,c['id'])['revision'],'action':'restore-all'})
-            self.assertIn('FUDAN',(site/'transcript.md').read_text())
+            self.assertIn('FUDAN',(site/'transcript.md').read_text(encoding='utf-8'))
     def test_edit_untranslated_and_keep_history_and_confirm_same_translation(self):
         with tempfile.TemporaryDirectory(dir='tmp') as d:
             store=Store(d);c=fixture();site=store.course_path(c['id']);atomic_json(site/'course.json',c)
