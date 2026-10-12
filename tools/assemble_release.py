@@ -6,6 +6,7 @@ Used when an already uploaded Lite archive shares most files with an Office asse
 import argparse
 import hashlib
 import json
+import struct
 import zipfile
 from pathlib import Path
 
@@ -15,10 +16,17 @@ def digest(path):
 
 
 def records(path):
-    with zipfile.ZipFile(path) as archive:
-        starts=[i.header_offset for i in sorted(archive.infolist(),key=lambda i:i.header_offset)]
-        assert starts and starts[0]==0
-        starts.extend([archive.start_dir,path.stat().st_size])
+    # Separate headers from compressed payloads so a renamed top-level folder
+    # can still reuse the exact bytes of unchanged runtime/model/Office files.
+    with zipfile.ZipFile(path) as archive,path.open('rb') as stream:
+        starts={0,archive.start_dir,path.stat().st_size}
+        for info in archive.infolist():
+            stream.seek(info.header_offset);header=stream.read(30)
+            if header[:4]!=b'PK\x03\x04':raise ValueError('Invalid local ZIP header')
+            name_size,extra_size=struct.unpack_from('<HH',header,26)
+            payload=info.header_offset+30+name_size+extra_size
+            starts.update((info.header_offset,payload,payload+info.compress_size))
+        starts=sorted(starts)
     with path.open('rb') as stream:
         for start,end in zip(starts,starts[1:]):
             stream.seek(start);yield start,stream.read(end-start)
