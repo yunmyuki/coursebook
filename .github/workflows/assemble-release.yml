@@ -19,7 +19,8 @@ jobs:
         run: |
           mkdir -p work/sources
           gh release download v2.1.0 --pattern CourseCompiler-Windows-x64-Lite.zip --pattern CourseCompiler-Office-Windows-x64.zip --dir work/sources
-          gh release download v2.2.0 --pattern assembly-manifest.json --pattern assembly-patch.bin --dir work/sources
+          gh release download v2.2.0 --pattern assembly-manifest.json --pattern 'assembly-patch.bin.part*' --dir work/sources
+          cat work/sources/assembly-patch.bin.part* > work/sources/assembly-patch.bin
       - name: Reassemble and verify exact SHA256 and ZIP integrity
         run: python tools/assemble_release.py assemble --manifest work/sources/assembly-manifest.json --sources work/sources --output work/output
       - name: Upload verified archives to the existing draft
