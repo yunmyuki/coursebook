@@ -38,8 +38,15 @@ def main():
 - 自动测试不替代所有 Mac 机型或讲义样本的实际验收，复杂页面仍应复核。
 
 '''+ '\n'.join(summaries)+f'\n\n[安装与使用说明](https://github.com/{REPO}/blob/{run["head_sha"]}/docs/macos.md) · [构建记录]({run["html_url"]})\n',encoding='utf-8')
-    gh('release','create',TAG,'--repo',REPO,'--target',run['head_sha'],'--title','Coursebook '+__version__+' · macOS','--draft','--notes-file',str(notes))
-    gh('release','upload',TAG,*files,str(Path('release/mac-publish/arm64/README-macOS.md')),'--repo',REPO)
+    existing=subprocess.run(['gh','release','view',TAG,'--repo',REPO,'--json','isDraft'],capture_output=True,text=True)
+    if existing.returncode==0:
+        assert json.loads(existing.stdout)['isDraft'],'Refusing to replace a published release'
+        ref=json.loads(gh('api',f'repos/{REPO}/git/ref/tags/{TAG}'))
+        assert ref['object']['type']=='commit' and ref['object']['sha']==run['head_sha'],'Draft tag must match tested build'
+        gh('release','edit',TAG,'--repo',REPO,'--title','Coursebook '+__version__+' · macOS','--notes-file',str(notes))
+    else:
+        gh('release','create',TAG,'--repo',REPO,'--target',run['head_sha'],'--title','Coursebook '+__version__+' · macOS','--draft','--notes-file',str(notes))
+    gh('release','upload',TAG,*files,str(Path('release/mac-publish/arm64/README-macOS.md')),'--repo',REPO,'--clobber')
     release=json.loads(gh('release','view',TAG,'--repo',REPO,'--json','id'))
     remote=json.loads(gh('api',f'repos/{REPO}/releases/{release["id"]}')) if str(release['id']).isdigit() else None
     # gh's node ID differs from REST ID; locate the draft by its unique tag instead.
