@@ -93,9 +93,11 @@ def extract_pdf(path, output, file_id, progress=lambda *a: None, page_numbers=No
     with pdfplumber.open(path) as doc:
         for index, p in enumerate(doc.pages):
             if page_numbers is not None and index+1 not in page_numbers:continue
+            from .layout import visible_page
+            p=visible_page(p);ox,oy=p.bbox[:2]
             page_id = f'{file_id}-page-{index+1:03d}'
             source = {'file': path.name, 'fileId': file_id, 'page': index+1}
-            image_path = file_dir / f'page-{index+1:03d}.jpg'
+            image_path = file_dir / f'page-{index+1:03d}-canvas2.jpg'
             if not image_path.exists():
                 render_page = renderer[index]
                 bitmap = render_page.render(scale=min(2.3, 1700/max(p.width, p.height)))
@@ -110,7 +112,8 @@ def extract_pdf(path, output, file_id, progress=lambda *a: None, page_numbers=No
             for i,g in enumerate(groups,1):
                 text = g['text']
                 u = unit(page_id,i,text,g['kind'],source,g['box'],typography=g['style'],readingOrder=i-1)
-                u['sourceText'] = re.sub(r'(?<=\w)-\n(?=[a-z])','',normalize(text)).replace('\n',' ')
+                from .layout import join_wrapped_lines
+                u['sourceText'] = join_wrapped_lines(normalize(text).splitlines())
                 if u['sourceText'] != normalize(text):
                     u['corrections'].append({'kind':'line-reconstruction','before':text,'after':u['sourceText']})
                 if g['kind']=='bullet':
@@ -120,12 +123,15 @@ def extract_pdf(path, output, file_id, progress=lambda *a: None, page_numbers=No
             links = []
             for link in p.hyperlinks:
                 if link.get('uri'):
-                    links.append({'url':link['uri'],'position':[link['x0']/p.width,link['top']/p.height,link['x1']/p.width,link['bottom']/p.height]})
+                    links.append({'url':link['uri'],'position':[(link['x0']-ox)/p.width,(link['top']-oy)/p.height,(link['x1']-ox)/p.width,(link['bottom']-oy)/p.height]})
+            from .native_tables import extract_tables
+            native_tables=extract_tables(p) if 6<=len(p.edges)<=4000 else []
             pages.append({'id':page_id,'number':index+1,'source':source,'title':units[0]['sourceText'] if units else f'Page {index+1}',
                           'layoutAnalysis':layout,'units':units,'rawText':raw_text,'rawUnits':[dict(u) for u in units],'textLines':text_lines,
                           'image':image_path.relative_to(output).as_posix(),'width':p.width,'height':p.height,
                           'links':links,'imageCount':len(p.images),'needsOCR':len(raw_text.strip())<50,
-                          'imageRegions':[[max(0,im['x0']/p.width),max(0,im['top']/p.height),min(1,im['x1']/p.width),min(1,im['bottom']/p.height)] for im in p.images],
+                          'nativeTables':native_tables,'canvasVersion':2,'rotation':p.rotation,
+                          'imageRegions':[[max(0,(im['x0']-ox)/p.width),max(0,(im['top']-oy)/p.height),min(1,(im['x1']-ox)/p.width),min(1,(im['bottom']-oy)/p.height)] for im in p.images],
                           'vectorCount':len(p.curves)+len(p.lines)+len(p.rects),'tableCount':0,
                           'blankPage':not(p.chars or p.images or p.curves or p.lines or p.rects),
                           'visualStatus':'pending','transcriptionStatus':'pending','warnings':[]})
@@ -138,6 +144,11 @@ def extract_pdf(path, output, file_id, progress=lambda *a: None, page_numbers=No
 def extract_pptx(path, original, output, file_id, progress=lambda *a:None):
     """Use structured XML including tables/charts/notes and a required independent render."""
     converted = convert_office(path, output / '.intermediate' / file_id)
+    # Retain the render source when moving/exporting a course; .intermediate is
+    # intentionally not exported, and future local crops must remain possible.
+    rendered_source=output/'sources'/(file_id+'.pdf')
+    rendered_source.parent.mkdir(parents=True,exist_ok=True)
+    if converted.resolve()!=rendered_source.resolve():shutil.copy2(converted,rendered_source)
     pages = extract_pdf(converted,output,file_id,progress)
     prs = Presentation(str(path))
     if len(pages) != len(prs.slides):
@@ -148,7 +159,7 @@ def extract_pptx(path, original, output, file_id, progress=lambda *a:None):
         p['units'] = []
         source = p['source']
         def add(text,kind,pos=None,**extra):
-            if text.strip():
+            if text.strip() or kind=='table-cell':
                 p['units'].append(unit(p['id'],len(p['units'])+1,text,kind,source,pos,origin='pptx-xml',**extra))
         def walk(shapes,transform=(1,1,0,0)):
             for shape in sorted(shapes,key=lambda s:(s.top,s.left)):
@@ -167,7 +178,12 @@ def extract_pptx(path, original, output, file_id, progress=lambda *a:None):
                         for col_i,cell in enumerate(row.cells):
                             if cell.is_spanned:
                                 continue
-                            add(cell.text,'table-cell',box,tableId=f"{p['id']}-table-{shape.shape_id}",row=row_i,col=col_i,rowSpan=cell.span_height,colSpan=cell.span_width)
+                            left=shape.left+sum(c.width for c in list(shape.table.columns)[:col_i])
+                            top=shape.top+sum(r.height for r in list(shape.table.rows)[:row_i])
+                            right=left+sum(c.width for c in list(shape.table.columns)[col_i:col_i+cell.span_width])
+                            bottom=top+sum(r.height for r in list(shape.table.rows)[row_i:row_i+cell.span_height])
+                            cb=[max(0,(sx*left+tx)/prs.slide_width),max(0,(sy*top+ty)/prs.slide_height),min(1,(sx*right+tx)/prs.slide_width),min(1,(sy*bottom+ty)/prs.slide_height)]
+                            add(cell.text,'table-cell',cb,tableId=f"{p['id']}-table-{shape.shape_id}",row=row_i,col=col_i,rowSpan=cell.span_height,colSpan=cell.span_width,positionEstimated=bool(shape.rotation))
                 elif shape.has_text_frame:
                     for para in shape.text_frame.paragraphs:
                         kind='title' if slide.shapes.title is not None and shape.shape_id==slide.shapes.title.shape_id else ('bullet' if para.level or para._p.find('.//'+ '{'+NS['a']+'}buChar') is not None else 'paragraph')

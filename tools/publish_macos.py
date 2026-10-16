@@ -13,6 +13,7 @@ def main():
     run=json.loads(gh('api',f'repos/{REPO}/actions/runs/{run_id}'))
     assert run['path']=='.github/workflows/macos-release.yml' and run['conclusion']=='success'
     assert run['head_repository']['full_name']==REPO and run['head_branch']=='main'
+    assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==run['head_sha'],'Publisher must use the tested source commit'
     files=[];summaries=[]
     for arch in ('arm64','x86_64'):
         folder=Path('release/mac-publish')/arch
@@ -28,7 +29,7 @@ def main():
         files += [str(package),str(folder/('quality-'+arch+'.json')),str(folder/('SHA256SUMS-'+arch+'.txt'))]
         summaries.append(f"- {arch}: {report['bytes']/1024**2:.1f} MiB；macOS {report['macOS']} 原生构建、窗口、钥匙串、模型推理与导出测试通过。")
     notes=Path('release/mac-publish/notes.md')
-    notes.write_text('''Coursebook macOS 发行版，内置本地版面模型与 Python 运行时。新增新手配置教程、可恢复页脚清洗和正文直接编辑；仅修改原文时旧译文转为待更新。
+    notes.write_text('''Coursebook macOS 发行版，内置本地版面模型与 Python 运行时。本版改善源文件高清区域裁剪、跨行段落、多栏阅读顺序与原生表格定位；已完成课程不会自动重新付费识别。
 
 - Apple Silicon（M 系列）下载 `Coursebook-macOS-arm64.zip`，支持 macOS 14+。
 - Intel 下载 `Coursebook-macOS-x86_64.zip`，支持 macOS 15+。

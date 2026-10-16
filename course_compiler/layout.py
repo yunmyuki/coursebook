@@ -2,16 +2,70 @@
 import re
 
 
+def join_wrapped_lines(parts):
+    """Join visual wraps without inserting artificial spaces between CJK glyphs."""
+    result=''
+    for part in parts:
+        part=part.strip()
+        if not part:continue
+        cjk=r'[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]'
+        separator='' if result and re.search(cjk+'$',result) and re.match(cjk,part) else ' '
+        result+=separator+part if result else part
+    return result
+
+
+def region_paragraphs(lines,rules=()):
+    """Split a detector region into paragraphs; never concatenate separate columns.
+
+    Geometry remains available even when an OCR/text layer has no font metadata.
+    In that case use conservative alignment/gap checks, rather than treating the
+    entire detector box as one paragraph.
+    """
+    from .structure import same_style
+    bullet=re.compile(r'^\s*(?:[•●▪◦‣]|[–—*]\s|\d+[.)]\s)')
+    groups=[]
+    for line in geometric_order(lines):
+        if not line['text'].strip():continue
+        merge=False
+        if groups and not bullet.match(line['text']):
+            previous=groups[-1][-1];a=previous['position'];b=line['position']
+            h=max(a[3]-a[1],b[3]-b[1]);gap=b[1]-a[3]
+            aligned=abs(a[0]-b[0])<=.018 or (bullet.match(groups[-1][0]['text']) and 0<=b[0]-a[0]<=.035)
+            intersection=min(a[2],b[2])-max(a[0],b[0])
+            separate=any(a[3]-.001<=r[1]<=b[1]+.001 and min(a[2],r[2])>max(a[0],r[0]) for r in rules)
+            styles=(previous.get('typography',{}),line.get('typography',{}))
+            styled=all(s.get('fontName') for s in styles)
+            # Relative line spacing works for both slides and dense documents.
+            merge=aligned and intersection>0 and -.003<=gap<=h*1.05 and not separate
+            if styled:
+                left={**styles[0],'fontName':font_family(styles[0]['fontName'])}
+                right={**styles[1],'fontName':font_family(styles[1]['fontName'])}
+                merge=merge and same_style(left,right)
+            if re.search(r'[.!?。！？][\)\]”\x27"]?$',previous['text'].strip()) and a[2]-a[0]<(b[2]-b[0])*.85:
+                merge=False
+        if merge:groups[-1].append(line)
+        else:groups.append([line])
+    return groups
+
+
 def font_family(name):
     # PDF subset prefixes identify embedded subsets, not different typefaces.
     return re.sub(r'^[A-Z]{6}\+', '', name or '')
+
+
+def visible_page(page):
+    """Use the same rotated CropBox canvas as the PDFium preview and crop renderer."""
+    if not page.cropbox:return page
+    a=page.bbox;b=page.cropbox
+    box=(max(a[0],b[0]),max(a[1],b[1]),min(a[2],b[2]),min(a[3],b[3]))
+    return page.crop(box) if box!=a and box[2]>box[0] and box[3]>box[1] else page
 
 
 def split_pdf_lines(page):
     """Keep columns apart before paragraph reconstruction or sending text hints."""
     from pdfplumber.utils import extract_text
     from .structure import typography
-    lines=[];split_rows=0
+    lines=[];split_rows=0;ox,oy=page.bbox[:2]
     for line in page.extract_text_lines(y_tolerance=3, x_tolerance=2, return_chars=True):
         chars=sorted((c for c in line['chars'] if c.get('text','').strip()), key=lambda c:c['x0'])
         runs=[]
@@ -22,15 +76,15 @@ def split_pdf_lines(page):
         if len(runs)>1:split_rows+=1
         for run in runs:
             lines.append({'text':extract_text(run,x_tolerance=2,y_tolerance=3),
-                          'position':[min(c['x0'] for c in run)/page.width,min(c['top'] for c in run)/page.height,
-                                      max(c['x1'] for c in run)/page.width,max(c['bottom'] for c in run)/page.height],
+                          'position':[(min(c['x0'] for c in run)-ox)/page.width,(min(c['top'] for c in run)-oy)/page.height,
+                                      (max(c['x1'] for c in run)-ox)/page.width,(max(c['bottom'] for c in run)-oy)/page.height],
                           'typography':typography(run)})
     rules=[]
     for edge in page.edges:
-        if edge.get('orientation')=='h' and edge['x1']-edge['x0']>page.width*.12 and .03<edge['top']/page.height<.97:
-            box=[edge['x0']/page.width,edge['top']/page.height,edge['x1']/page.width,edge['bottom']/page.height]
+        if edge.get('orientation')=='h' and edge['x1']-edge['x0']>page.width*.12 and .03<(edge['top']-oy)/page.height<.97:
+            box=[(edge['x0']-ox)/page.width,(edge['top']-oy)/page.height,(edge['x1']-ox)/page.width,(edge['bottom']-oy)/page.height]
             if not any(abs(box[1]-r[1])<.004 and abs(box[0]-r[0])<.01 and abs(box[2]-r[2])<.01 for r in rules):rules.append(box)
-    vertical=[e for e in page.edges if e.get('orientation')=='v' and e['bottom']-e['top']>page.height*.18 and .05<e['x0']/page.width<.95]
+    vertical=[e for e in page.edges if e.get('orientation')=='v' and e['bottom']-e['top']>page.height*.18 and .05<(e['x0']-ox)/page.width<.95]
     # Sparse tables and split-column slides often have fewer than 14 vector objects.
     reasons=[]
     if split_rows>=2:reasons.append('repeated-column-gaps')

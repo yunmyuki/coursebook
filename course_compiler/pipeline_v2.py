@@ -23,17 +23,17 @@ def course_id(paths):
     paths=sorted(map(Path,paths),key=course_order_key)
     return 'course-'+hashlib.sha256(('pipeline-v1'+''.join(hashlib.sha256(p.read_bytes()).hexdigest() for p in paths)).encode()).hexdigest()[:16]
 
-def fingerprint(profile):
+def fingerprint(profile,hybrid_version=None):
     if profile.get('engine')=='local-layout-ocr':
         from .local_layout import VERSION,SHA256
         from .hybrid_parser import VERSION as HYBRID_VERSION
-        profile={**profile,'layoutImplementation':VERSION+SHA256+HYBRID_VERSION}
+        profile={**profile,'layoutImplementation':VERSION+SHA256+(hybrid_version or HYBRID_VERSION)}
     return hashlib.sha256(json.dumps({k:v for k,v in profile.items() if k not in ('apiKey','hasApiKey','encryptedKey')},sort_keys=True).encode()).hexdigest()[:16]
 
 def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanations=False,parse_mode='adaptive',progress=lambda *a:None,cancel=None,title=None,request_limit=1000,translation_context=None,terminology=None,retained_course=None):
     started=time.monotonic();paths=sorted(map(Path,paths),key=course_order_key);cid=course_id(paths)
     output=Path(output);output.mkdir(parents=True,exist_ok=True);cache=Path(cache_root)/cid;cache.mkdir(parents=True,exist_ok=True)
-    extraction=cache/'extraction-v4.json'
+    extraction=cache/'extraction-v5.json'
     if extraction.exists() and (output/'assets').exists() and (output/'sources').exists():files=json.loads(extraction.read_text('utf-8'))
     else:files=extract_files(paths,output,progress);atomic_json(extraction,files)
     all_pages=[p for f in files for p in f['pages']];total=len(all_pages)
@@ -70,7 +70,7 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
             if isinstance(e,ModelAuthorizationError):context_blocked=str(e)
     termfile=cache/('terminology-'+translation_key+'.json')
     if termfile.exists():course['terminology']={**json.loads(termfile.read_text('utf-8')),**course['terminology']}
-    lock=threading.Lock();halt=threading.Event();done=0;metrics={'nativePages':0,'visionPages':0,'hybridPages':0,'nativeRegions':0,'ocrRegions':0,'resumedPages':0,'documentCalls':0,'secondPassCalls':0,'pageFailures':0}
+    lock=threading.Lock();halt=threading.Event();done=0;metrics={'nativePages':0,'visionPages':0,'hybridPages':0,'nativeRegions':0,'ocrRegions':0,'nativeTables':0,'sourceRegionRenders':0,'previewRegionFallbacks':0,'resumedPages':0,'documentCalls':0,'secondPassCalls':0,'pageFailures':0}
     if context_blocked:halt.set();progress('blocked',0,total,context_blocked)
     legacy_translation_key=translation_key;translation_key+='-'+context_key(course['translationContext'])+'-'+hashlib.sha256(json.dumps(course['terminology'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:12]
     def stopped():return halt.is_set() or bool(cancel and cancel.is_set())
@@ -80,8 +80,11 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
         text_lines=page.get('textLines',[]);layout=page.get('layoutAnalysis');fresh=copy.deepcopy(page)
         if saved.exists():
             previous=json.loads(saved.read_text('utf-8'));page.clear();page.update(previous['page']);exp=previous.get('explanations',[]);meta=previous.get('stages',{})
-        if text_lines:page['textLines']=text_lines
-        if layout is not None:page['layoutAnalysis']=layout
+        # A newer extraction canvas must not move anchors in an already compiled
+        # page. Only replace its evidence when parsing that page again.
+        legacy_hybrid='v5-'+parse_mode+'-'+fingerprint(profiles['parse'],hybrid_version='hybrid-1')
+        if profiles['parse'].get('engine')=='local-layout-ocr' and meta.get('parse')==legacy_hybrid and page.get('visualStatus')=='complete':
+            meta['parse']=parse_key;page['parserUpgradeAvailable']=True
         # This migration fixes the native shortcut. Already visually parsed pages
         # with the same profile/mode remain reusable instead of charging the course again.
         old_keys=[v+'-'+parse_mode+'-'+fingerprint(profiles['parse']) for v in ('v3','v4')]
@@ -104,6 +107,9 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
                 if meta.get('parse')!=parse_key or page.get('visualStatus')!='complete':
                     progress('document-parsing',page['number'],total,reason)
                     candidate=copy.deepcopy(page)
+                    for key in ('textLines','layoutAnalysis','nativeTables','image','width','height','imageRegions','canvasVersion','rotation'):
+                        if key in fresh:candidate[key]=copy.deepcopy(fresh[key])
+                    candidate.pop('parserUpgradeAvailable',None)
                     if route=='native':
                         if saved.exists() and meta.get('parse')!=parse_key and layout and page['source']['file'].lower().endswith('.pdf'):
                             # Upgrade cached native paragraphs without losing old anchors or
@@ -119,7 +125,7 @@ def compile_course(paths,output,profiles,cache_root,workers=3,ai=True,explanatio
                         result=parser.parse(candidate,output);commit_layout(candidate,result,output)
                         with lock:
                             metrics['hybridPages' if route=='local-layout-ocr' else 'visionPages']+=1
-                            for key in ('nativeRegions','ocrRegions'):metrics[key]+=result.get('hybridMetrics',{}).get(key,0)
+                            for key in ('nativeRegions','ocrRegions','nativeTables','sourceRegionRenders','previewRegionFallbacks'):metrics[key]+=result.get('hybridMetrics',{}).get(key,0)
                     page.clear();page.update(candidate);page['parseRoute']={'route':route,'reason':reason};meta['parse']=parse_key
                     exp=[];meta.pop('explanation',None)
                     atomic_json(saved,{'page':page,'explanations':exp,'stages':meta})

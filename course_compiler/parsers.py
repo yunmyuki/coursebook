@@ -72,6 +72,19 @@ def validate_parser_connection(profile):
             raise ValueError('硅基流动的 PaddleOCR 聊天端点不提供完整页面版面接口。请在模型设置中改用支持图片和文字的通用视觉模型。')
 
 def table_cells(table):
+    if isinstance(table.get('cells'),list):
+        result=[];occupied=set()
+        for item in table['cells']:
+            if not isinstance(item,dict) or not isinstance(item.get('text'),str):raise ModelError('表格单元格内容无效。')
+            values=[item.get(k,1 if k.endswith('Span') else 0) for k in ('row','col','rowSpan','colSpan')]
+            if any(type(v) is not int for v in values):raise ModelError('表格单元格索引无效。')
+            r,c,rs,cs=values
+            if min(r,c)<0 or min(rs,cs)<1 or max(r+rs,c+cs)>5000 or rs*cs>5000:raise ModelError('表格单元格跨度无效。')
+            slots={(y,x) for y in range(r,r+rs) for x in range(c,c+cs)}
+            if slots&occupied:raise ModelError('表格单元格重叠。')
+            occupied.update(slots);result.append(dict(item))
+        if not result:raise ModelError('表格没有返回单元格。')
+        return result
     rows=table.get('rows')
     if isinstance(rows,list):
         result=[];occupied=set()
@@ -207,7 +220,7 @@ class DocumentParser:
         engine=self.profile.get('engine','vision');image=prepare_image(page,output)
         if engine=='local-layout-ocr':
             from .hybrid_parser import parse
-            return parse(page,image,self.model,self.profile,self.cache,getattr(self,'layout_root',None))
+            return parse(page,image,self.model,self.profile,self.cache,getattr(self,'layout_root',None),output=output)
         if engine=='unlimited-ocr':
             self.model.request_options={'stream':True,'temperature':0,'skip_special_tokens':False,'images_config':{'image_mode':'gundam'}}
             return unlimited_layout(self.model.request('','document parsing.',image=image,json_output=False,max_tokens=18000,validator=lambda raw:validate_layout(unlimited_layout(raw))))
@@ -259,7 +272,7 @@ def commit_layout(page,result,output):
         add(block.get('text'),kind,block.get('bbox'),level=min(6,max(0,int(block.get('level',0)))),uncertain=bool(block.get('uncertain')),**({'readingOrder':block['readingOrder']} if 'readingOrder' in block else {}),**({'latex':block['latex']} if block.get('latex') else {}))
         if block.get('contentOrigin')=='figure-transcription' and block.get('text','').strip():units[-1]['contentOrigin']='figure-transcription'
         if block.get('text','').strip():
-            for key in ('rawText','sourceEvidence','layoutLabel','layoutConfidence','rawPosition','positionEstimated'):
+            for key in ('rawText','sourceEvidence','layoutLabel','layoutConfidence','rawPosition','positionEstimated','sourceLines','qualityEvidence','rendering'):
                 if key in block:units[-1][key]=block[key]
     for ti,table in enumerate(result.get('tables',[])):
         box=table.get('bbox')
@@ -269,7 +282,12 @@ def commit_layout(page,result,output):
         for cell in cells:
             ri,ci=cell['row'],cell['col'];rs=cell.get('rowSpan',1);cs=cell.get('colSpan',1)
             cb=[box[0]+(box[2]-box[0])*ci/nc,box[1]+(box[3]-box[1])*ri/nr,box[0]+(box[2]-box[0])*(ci+cs)/nc,box[1]+(box[3]-box[1])*(ri+rs)/nr]
-            add(cell['text'],'table-cell',cb,tableId=prefix+f'-parsed-table-{ti+1}',row=ri,col=ci,rowSpan=rs,colSpan=cs,uncertain=bool(cell.get('uncertain') or table.get('uncertain')),positionEstimated=True,**({'readingOrder':table['readingOrder']} if 'readingOrder' in table else {}))
+            exact=cell.get('bbox')
+            if exact is not None:
+                if not valid_box(exact) or any(exact[i]<box[i]-.001 or exact[i+2]>box[i+2]+.001 for i in (0,1)):raise ModelError('单元格坐标超出表格区域。')
+                cb=exact
+            add(cell['text'],'table-cell',cb,tableId=prefix+f'-parsed-table-{ti+1}',row=ri,col=ci,rowSpan=rs,colSpan=cs,uncertain=bool(cell.get('uncertain') or table.get('uncertain')),positionEstimated=exact is None,
+                sourceEvidence=cell.get('sourceEvidence',table.get('sourceEvidence','table-ocr')),**({'readingOrder':table['readingOrder']} if 'readingOrder' in table else {}))
     if not units and (page.get('rawText','').strip() or not result.get('figures')):raise ModelError('解析结果为空，原始页面已保留，未标记完成。')
     # Retain every raw unit and its anchor. Missing meaningful words stay visible, not silently dropped.
     def words(text):
@@ -340,7 +358,7 @@ def commit_layout(page,result,output):
     if 'hybridMetrics' in result:
         page['hybridMetrics']=copy.deepcopy(result['hybridMetrics'])
         page['layoutRegions']=copy.deepcopy(result.get('layoutRegions',[]))
-        page['tableRecognition']=[{k:copy.deepcopy(t[k]) for k in ('bbox','rawText','formatRepair','uncertain','layoutConfidence') if k in t} for t in result.get('tables',[])]
+        page['tableRecognition']=[{k:copy.deepcopy(t[k]) for k in ('bbox','rawText','formatRepair','uncertain','layoutConfidence','sourceEvidence','qualityEvidence','rendering') if k in t} for t in result.get('tables',[])]
         page['validationMethod']='local-layout-selective-ocr'
         if result.get('hybridReviewReasons'):
             page['reviewRequired']=True

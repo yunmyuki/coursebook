@@ -16,10 +16,11 @@ from . import prompts
 
 def refresh_evidence(page,site):
     from .extract import extract_pdf
-    source=Path(site)/'sources'/(page['source']['fileId']+'.pdf')
-    if source.is_file() and source.resolve().is_relative_to(Path(site).resolve()):
+    from .visual_input import source_pdf
+    source=source_pdf(page,site)
+    if source is not None:
         fresh=extract_pdf(source,Path(site),page['source']['fileId'],page_numbers={page['number']})[0]
-        for key in ('textLines','layoutAnalysis','width','height','needsOCR','imageRegions','vectorCount'):
+        for key in ('textLines','layoutAnalysis','nativeTables','width','height','needsOCR','imageRegions','vectorCount','image','canvasVersion','rotation'):
             page[key]=fresh[key]
     return page
 
@@ -35,7 +36,7 @@ def reparse_page(store,cid,page_id,progress=lambda *a:None,cancel=None):
     parser=DocumentParser(profiles['parse'],store.root/'cache/model');parser.model.budget=budget
     parser.layout_root=store.root
     candidate=copy.deepcopy(page)
-    for key in ('reviewRequired','reviewReasons','reviewedAt','reviewedBy'):candidate.pop(key,None)
+    for key in ('reviewRequired','reviewReasons','reviewedAt','reviewedBy','parserUpgradeAvailable'):candidate.pop(key,None)
     result=parser.parse(candidate,site);commit_layout(candidate,result,site)
     translator=make_model(profiles['translation'],store.root/'cache/model');translator.budget=budget
     active=[u for u in candidate['units'] if not u.get('reviewOnly')]

@@ -19,9 +19,9 @@ OUT=ROOT/'release'/__version__
 APP=OUT/'app/Coursebook'
 OFFICE=APP/'_internal/office'
 REPOSITORY='https://github.com/yunmyuki/coursebook'
-DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md','hybrid-parsing-2026-09-30.md','hybrid-validation-2026-09-30.md','macos.md','iteration-onboarding-cleanup-editing.md')
+DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md','hybrid-parsing-2026-09-30.md','hybrid-validation-2026-09-30.md','macos.md','iteration-onboarding-cleanup-editing.md','parser-precision.md','release-automation.md')
 SOURCE_FILES=('README.md','LICENSE','.gitignore','requirements.txt','requirements-desktop.txt','requirements-lock.txt','requirements-dev.txt','requirements-layout.txt','requirements-macos.txt','desktop_main.py','package.json')
-SOURCE_TOOLS=('build_desktop.py','test_windows_release.py','build_macos.py','test_macos_release.py','publish_macos.py','assemble_release.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py','benchmark_hybrid.py')
+SOURCE_TOOLS=('build_desktop.py','test_windows_release.py','build_macos.py','test_macos_release.py','publish_macos.py','assemble_release.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py','benchmark_hybrid.py','benchmark_parser_precision.py','automate_release.py','release_support.py')
 FORBIDDEN={'.env','.env.local','settings.json','library.json','course.json','course-data.js'}
 
 def digest(path):
@@ -64,8 +64,8 @@ def prepare(office_archive=None):
         with zipfile.ZipFile(archive_path) as z:
             if z.testzip():raise RuntimeError('Prior Office archive is damaged')
             for info in z.infolist():
-                prefix='CourseCompiler/_internal/office/'
-                if not info.filename.startswith(prefix) or info.is_dir():continue
+                prefix=next((p for p in ('Coursebook/_internal/office/','CourseCompiler/_internal/office/') if info.filename.startswith(p)),None)
+                if prefix is None or info.is_dir():continue
                 target=(OFFICE/info.filename[len(prefix):]).resolve()
                 if not target.is_relative_to(OFFICE.resolve()):raise RuntimeError('Invalid Office archive path')
                 target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(z.read(info))

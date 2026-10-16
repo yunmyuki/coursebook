@@ -1,32 +1,28 @@
-# Coursebook 2.2.0
+# Coursebook 2.2.1
 
-把课程讲义，变成可以读、查、问、记的双语学习空间。本版让第一次配置更容易，并让清洗和修正讲义成为阅读流程的一部分。
+把课程讲义，变成可以读、查、问、记的双语学习空间。本版重点改善解析精度，并将检验和发布流程自动化。
 
-## 新增与改进
+## 改进
 
-- **新手引导**：四步介绍功能、API 地址、模型名和 Key、导入与复核。支持跳过、恢复进度和从侧栏重看；直接进入真实配置页，保存后继续教程。连接测试需主动点击。
-- **页面清洗**：检测同一文件中重复的页码、学校或版权等边缘固定标注，预览后勾选隐藏。支持恢复；保留原图、识别文本、稳定锚点，清洗结果同步到阅读、搜索和导出。
-- **直接编辑正文**：段落旁 ✎、页角「编辑」和顶部「编辑正文」均可进入；支持搜索，修改原文、译文、表格单元和 LaTeX 公式。
-- **可靠修正**：允许只保存原文，旧译文保留到历史并标为待更新；当前译文确实仍适用时可明确确认。未保存修改保护、其他窗口编辑冲突检测、笔记关联保留。
-- 改善窄屏原页预览与编辑操作。Windows 程序和下载包统一使用 Coursebook 名称，保留旧版数据目录以兼容升级。
+- 从源 PDF 直接高清渲染 OCR 与图表区域，避免预览图二次裁剪损失小字；旋转和裁剪页坐标保持一致。
+- 改善跨行段落与多栏阅读顺序，保留原始行及坐标；中文续行不插入多余空格。
+- 可靠原生表格采用真实单元格边界，支持不等宽列、合并格和空格；不可靠网格与扫描表格继续区域 OCR。
+- 记录文字来源、精确/估算坐标与渲染方法；版面置信度不冒充文字准确率。
+- 已完成旧课程保留，不因升级自动产生整门课程重新识别费用；用户可选择重新识别单页。
+- 新增可恢复的自动化检验发布入口、精简摘要、远端散列核验与压缩数据增量上传。
 
-## 下载与升级
+## 下载
 
-[Windows 下载](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0) · [Mac 下载](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0-macos.1)
+[Windows](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1) · [macOS](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1-macos.1)
 
-- **Windows 完整版**：PDF、PPTX、PPT 所需转换组件、本地版面模型和运行时齐备。
-- **Windows 轻量版**：保留本地模型与 PDF 能力；PPT/PPTX 需本机 LibreOffice 或另下载 Office 组件。
-- **Mac arm64 / x86_64**：分别支持 Apple Silicon macOS 14+ 和 Intel macOS 15+；PPT/PPTX 需安装 LibreOffice。
-- 另有源码与自制示例课程。示例采用固定人工译文，阅读无需 API Key。
+Windows 完整版包含 PPT/PPTX 转换组件；Lite 版处理 PDF，Office 组件可另装。Mac 提供 Apple Silicon macOS 14+ 与 Intel macOS 15+ 独立版本，PPT/PPTX 需安装 LibreOffice。
 
-关闭旧应用，将新版解压到新目录。Windows 双击 `Coursebook.exe`；不要单独移动程序或删除 `_internal`。已有课程、学习记录与自定义 API 配置保留；不要同时运行新旧版本访问同一数据目录。升级前建议备份数据。
+关闭旧程序，将新版解压到新目录，保留用户数据目录。课程、笔记及自定义连接配置继续使用；不要同时运行新旧应用访问同一数据目录。
 
 ## 验证与边界
 
-[质量记录](https://github.com/yunmyuki/coursebook/blob/v2.2.0/docs/release-quality.md) · [新功能说明](https://github.com/yunmyuki/coursebook/blob/v2.2.0/docs/iteration-onboarding-cleanup-editing.md)
+[质量记录](https://github.com/yunmyuki/coursebook/blob/v2.2.1/docs/release-quality.md) · [解析改进](https://github.com/yunmyuki/coursebook/blob/v2.2.1/docs/parser-precision.md) · [自动化发布](https://github.com/yunmyuki/coursebook/blob/v2.2.1/docs/release-automation.md)
 
-清洗采用保守规则：同一文件中至少三页、覆盖至少 60% 页面的可靠边缘候选才会列入建议；不会自动删除知识点。缺少位置或与正文混合的标注可能无法建议，需要人工编辑。
+测试使用隔离夹具和模拟服务，不代表任意云端模型的识别准确率。复杂讲义仍需对照原页复核。正文编辑、页面清洗和 AI 助手需要本地应用；静态网站可独立离线阅读。
 
-测试采用隔离课程和模拟服务验证新流程，不代表所有云端模型均已实测。复杂讲义仍需对照原页复核。正文编辑、页面清洗和 AI 助手需要本地应用；导出的静态网站可独立离线阅读。
-
-Windows 尚未 Authenticode 签名；Mac 为 ad-hoc 签名，尚未 Developer ID 签名及公证。包中不包含开发者讲义、个人记录或 API Key。各发行附件提供 SHA256 校验值。
+Windows 尚未 Authenticode 签名；Mac 为 ad-hoc 签名，尚未 Developer ID 签名与公证。发行附件附 SHA256 校验值，不含私人讲义、学习记录或 API Key。

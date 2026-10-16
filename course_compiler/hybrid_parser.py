@@ -4,15 +4,14 @@ Canonical output retains coordinates and provenance. Markdown is a derived view.
 No automatic whole-page paid second pass, and no chart interpretation as source.
 """
 import copy
-import hashlib
 import re
 from pathlib import Path
 from PIL import Image
 from .figures import area,overlap,valid_box
 from .model import ModelError
-from .layout import geometric_order
+from .layout import geometric_order,region_paragraphs,join_wrapped_lines
 
-VERSION='hybrid-1'
+VERSION='hybrid-2'
 FIGURES={'image','chart','seal','header_image','footer_image'}
 FORMULAS={'display_formula','inline_formula'}
 TITLES={'doc_title','paragraph_title'}
@@ -99,28 +98,26 @@ def ink_missing(image,box,lines):
 def trusted_native(region,lines,image,page):
     if region['label'] in FIGURES|FORMULAS|{'table','algorithm','vertical_text'} or not lines:return False
     text=' '.join(l['text'] for l in lines)
-    if '\ufffd' in text or re.search(r'\(cid:\d+\)|[\x00-\x08]',text):return False
+    from .native_tables import reliable_text
+    if not reliable_text(text):return False
     if any(overlap(region['bbox'],b)/max(area(region['bbox']),1e-9)>.1 for b in page.get('imageRegions',[]) if valid_box(b)):
         return False
     return ink_missing(image,region['bbox'],lines)<.08
 
-def native_blocks(region,lines):
+def native_blocks(region,lines,rules=()):
     kind='title' if region['label'] in TITLES else 'footnote' if region['label'] in ('footnote','footer','number','vision_footnote') else 'paragraph'
-    ordered=geometric_order(lines)
     # A detected paragraph is stronger evidence than physical PDF line boundaries.
     # Explicit bullet starts stay separate; no word rewriting or hyphen guessing.
-    chunks=[]
-    for line in ordered:
-        text=line['text'].strip()
-        if not text:continue
-        if not chunks or re.match(r'^\s*[•●▪◦‣]\s*',text):chunks.append([])
-        chunks[-1].append(line)
+    chunks=region_paragraphs(lines,rules)
     blocks=[]
     for chunk in chunks:
         box=[min(l['position'][0] for l in chunk),min(l['position'][1] for l in chunk),max(l['position'][2] for l in chunk),max(l['position'][3] for l in chunk)]
         raw='\n'.join(l['text'] for l in chunk)
-        blocks.append({'type':'bullet' if re.match(r'^\s*[•●▪◦‣]',raw) else kind,
-                       'text':' '.join(l['text'].strip() for l in chunk),'bbox':box,'rawText':raw,'sourceEvidence':'native-text-layer'})
+        from .extract import BULLET
+        blocks.append({'type':'bullet' if BULLET.match(raw) else kind,
+                       'text':join_wrapped_lines(l['text'] for l in chunk),'bbox':box,'rawText':raw,'sourceEvidence':'native-text-layer',
+                       'sourceLines':[{'text':l['text'],'bbox':l['position']} for l in chunk],
+                       'qualityEvidence':{'textConfidence':None,'method':'native-geometry-and-coverage'}})
     return blocks
 
 def uncovered_visual(image,boxes):
@@ -140,14 +137,14 @@ def uncovered_visual(image,boxes):
         unexplained[max(0,y0-3):min(h,y1+3),max(0,x0-3):min(w,x1+3)]=False
     return int(unexplained.sum()),float(unexplained.sum()/max(fg.sum(),1))
 
-def parse(page,image,model,profile,cache,root=None):
+def parse(page,image,model,profile,cache,root=None,output=None):
     from .local_layout import detect
     from .parsers import validate_layout
     analysis=detect(image,Path(cache)/'layout',root)
     regions=copy.deepcopy(analysis['regions']);lines=page.get('textLines',[])
     result={'blocks':[],'tables':[],'figures':[],'warnings':[]}
     metrics={'layoutSeconds':analysis['seconds'],'layoutCacheHit':analysis.get('cacheHit',False),'layoutRegions':len(regions),'nativeRegions':0,'ocrRegions':0,
-             'unassignedTextLines':0,'modelVersion':analysis['model'],'modelSha256':analysis['sha256']}
+             'unassignedTextLines':0,'nativeTables':0,'sourceRegionRenders':0,'previewRegionFallbacks':0,'modelVersion':analysis['model'],'modelSha256':analysis['sha256']}
     # A detector miss must never discard an embedded image.
     for box in page.get('imageRegions',[]):
         if valid_box(box) and area(box)>.005 and area(box)<.9 and not any(overlap(box,r['bbox'])/area(box)>.8 for r in regions):
@@ -172,23 +169,34 @@ def parse(page,image,model,profile,cache,root=None):
         for i,r in enumerate(regions):
             native=assignments[i];label=r['label'];box=r['bbox'];base=r['readingOrder']*100
             common={'readingOrder':base,'layoutLabel':label,'layoutConfidence':r['score']}
+            if label=='table':
+                from .native_tables import matching_table
+                table=matching_table(box,page.get('nativeTables',[]))
+                if table:
+                    # Grid validity alone is not proof of content completeness.
+                    image_overlap=any(valid_box(b) and overlap(table['bbox'],b)>0 for b in page.get('imageRegions',[]))
+                    if not image_overlap and table.get('coverageBoxes') and ink_missing(raster,table['bbox'],[{'position':b} for b in table['coverageBoxes']])<.08:
+                        result['tables'].append({**copy.deepcopy({k:v for k,v in table.items() if k!='coverageBoxes'}),**common,
+                            'qualityEvidence':{'textConfidence':None,'method':'native-grid-and-coverage'}})
+                        metrics['nativeTables']+=1;metrics['nativeRegions']+=1;continue
             if label in FIGURES:
                 result['figures'].append({'bbox':box,'kind':'chart' if label=='chart' else 'image',**common})
                 # Native chart labels remain individually searchable. OCR also checks
                 # rasterized labels, rather than assuming a nonempty text layer is enough.
             if trusted_native(r,native,raster,page):
-                for j,b in enumerate(native_blocks(r,native)):result['blocks'].append({**common,**b,'readingOrder':base+j})
+                for j,b in enumerate(native_blocks(r,native,page.get('layoutAnalysis',{}).get('horizontalRules',[]))):result['blocks'].append({**common,**b,'readingOrder':base+j})
                 metrics['nativeRegions']+=1;continue
             plans.append((r,native,common))
         max_regions=int(profile.get('maxOcrRegions',32))
         if len(plans)>max_regions:
             raise ModelError(f'本页需要 {len(plans)} 个区域 OCR，超过单页上限 {max_regions}；尚未发送本页识别请求。可提高上限或改用整页解析服务。')
         for r,native,common in plans:
-            box=r['bbox'];label=r['label'];pad=.003
-            crop=raster.crop((max(0,int((box[0]-pad)*w)),max(0,int((box[1]-pad)*h)),min(w,int((box[2]+pad)*w)),min(h,int((box[3]+pad)*h))))
-            signature=hashlib.sha256(crop.tobytes()+str(crop.size).encode()).hexdigest()
-            target=cache/(signature+'.png')
-            if not target.exists():crop.save(target)
+            box=r['bbox'];label=r['label']
+            from .visual_input import render_region
+            target,rendering=render_region(page,output,box,cache,fallback=image,padding=.002)
+            metrics['sourceRegionRenders' if rendering['method']=='source-pdf-region' else 'previewRegionFallbacks']+=1
+            common['rendering']=rendering
+            common['qualityEvidence']={'textConfidence':None,'method':'region-ocr','layoutConfidence':r['score']}
             prompt=prompt_for(backend,label)
             def validate(raw):
                 text=clean(raw)

@@ -4,7 +4,7 @@ Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应
 
 ## 安装与首次启动
 
-1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.0) 下载 Windows x64 完整版或轻量版。
+1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1) 下载 Windows x64 完整版或轻量版。
 2. 用 Windows 自带解压功能解压整个 ZIP。不要在压缩包中直接启动，不要单独移动 EXE。
 3. 双击 `Coursebook.exe`。默认数据保存在 `%LOCALAPPDATA%\Course Compiler`，与程序文件夹分离。
 4. 跟随首次启动教程，在「模型与设置」填写 API 地址、模型名与 API Key，再主动测试连接。教程可以跳过，侧栏「使用教程」可重新查看。

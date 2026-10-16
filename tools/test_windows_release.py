@@ -7,7 +7,7 @@ from course_compiler import __version__
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--lite',action='store_true');args=parser.parse_args()
-    out=ROOT/'release'/__version__;test=ROOT/'tmp'/('release-'+__version__+('-lite' if args.lite else '-full'))
+    out=ROOT/'release'/__version__;test=ROOT/'tmp'/('release-'+__version__+('-lite-' if args.lite else '-full-')+str(time.time_ns()))
     test.mkdir(parents=True,exist_ok=True)
     if args.lite:
         with zipfile.ZipFile(out/'Coursebook-Windows-x64-Lite.zip') as z:

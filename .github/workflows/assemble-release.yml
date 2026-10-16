@@ -1,6 +1,13 @@
 name: Assemble verified release archives
 on:
   workflow_dispatch:
+    inputs:
+      base_tag:
+        required: true
+        description: Published version containing verified base ZIPs
+      target_tag:
+        required: true
+        description: Existing draft tag to receive exact tested ZIPs
 permissions:
   contents: write
 jobs:
@@ -10,20 +17,26 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      BASE_TAG: ${{ inputs.base_tag }}
+      TARGET_TAG: ${{ inputs.target_tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Download verified bases and assembly recipe
+        shell: bash
         run: |
+          [[ "$BASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$TARGET_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          gh release view "$TARGET_TAG" --json isDraft --jq '.isDraft' | grep -x true
           mkdir -p work/sources
-          gh release download v2.1.0 --pattern CourseCompiler-Windows-x64-Lite.zip --pattern CourseCompiler-Office-Windows-x64.zip --dir work/sources
-          gh release download v2.2.0 --pattern assembly-manifest.json --pattern 'assembly-patch.bin.part*' --dir work/sources
+          gh release download "$BASE_TAG" --pattern Coursebook-Windows-x64-Lite.zip --pattern Coursebook-Office-Windows-x64.zip --dir work/sources
+          gh release download "$TARGET_TAG" --pattern assembly-manifest.json --pattern 'assembly-patch.bin.part*' --dir work/sources
           cat work/sources/assembly-patch.bin.part* > work/sources/assembly-patch.bin
       - name: Reassemble and verify exact SHA256 and ZIP integrity
         run: python tools/assemble_release.py assemble --manifest work/sources/assembly-manifest.json --sources work/sources --output work/output
       - name: Upload verified archives to the existing draft
         run: |
-          gh release view v2.2.0 --json isDraft --jq '.isDraft' | grep -x true
-          gh release upload v2.2.0 work/output/*.zip --clobber
+          gh release view "$TARGET_TAG" --json isDraft --jq '.isDraft' | grep -x true
+          gh release upload "$TARGET_TAG" work/output/*.zip --clobber

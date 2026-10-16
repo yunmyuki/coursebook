@@ -1,7 +1,6 @@
 """Preserve figures as crops of the rendered original, with stable source anchors."""
 import hashlib
 from pathlib import Path
-from PIL import Image
 
 def valid_box(box):
     return isinstance(box,(list,tuple)) and len(box)==4 and all(isinstance(v,(int,float)) and 0<=v<=1 for v in box) and box[2]>box[0] and box[3]>box[1]
@@ -26,12 +25,12 @@ def add_figure(page,output,box,kind='image',caption='',origin='source-crop'):
     figures=page.setdefault('figures',[])
     same=next((f for f in figures if overlap(f['position'],box)/max(area(f['position']),area(box))>.94),None)
     if same:return same
-    output=Path(output);image=output/page['image'];dest=output/'assets'/page['source']['fileId']/(fid+'.png');dest.parent.mkdir(parents=True,exist_ok=True)
-    with Image.open(image) as im:
-        coords=(int(box[0]*im.width),int(box[1]*im.height),max(int(box[2]*im.width),int(box[0]*im.width)+1),max(int(box[3]*im.height),int(box[1]*im.height)+1))
-        crop=im.crop(coords);crop.save(dest);width,height=crop.size
+    from .visual_input import render_region
+    output=Path(output)
+    dest,rendering=render_region(page,output,box,output/'assets'/page['source']['fileId']/'regions',purpose='figure')
+    width,height=rendering['pixelSize']
     related=[u['id'] for u in page['units'] if not u.get('reviewOnly') and valid_box(u.get('position')) and overlap(box,u['position'])/max(area(u['position']),.000001)>.3]
-    f={'id':fid,'kind':kind if kind in ('image','chart','diagram') else 'image','image':dest.relative_to(output).as_posix(),'position':rounded,'source':dict(page['source']),'caption':caption,'width':width,'height':height,'relatedContentIds':related,'origin':origin}
+    f={'id':fid,'kind':kind if kind in ('image','chart','diagram') else 'image','image':dest.relative_to(output).as_posix(),'position':rounded,'source':dict(page['source']),'caption':caption,'width':width,'height':height,'relatedContentIds':related,'origin':origin,'rendering':rendering}
     figures.append(f);return f
 
 def native_figures(page,output):
