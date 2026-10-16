@@ -155,3 +155,11 @@ node tests/reader.test.cjs
 项目代码使用 [MIT License](LICENSE)。第三方组件沿用各自许可证，包括 LibreOffice、PDFium、KaTeX、pywebview 与 Python。发行包保留第三方许可证和来源说明，见 [第三方组件](docs/third-party.md)。项目与这些组件的维护组织无隶属或背书关系。
 
 页面截图使用项目自制示例，不包含用户课程资料。
+
+## 喜欢 Coursebook？点一颗 Star ⭐
+
+如果 Coursebook 帮你少切了几个窗口、多留了一点时间理解讲义，欢迎点击页面右上角的 **Star**，支持这个项目。
+
+你的每一颗 Star，都是我继续打磨 Coursebook 的动力，也能让更多被 PPT、翻译、AI 和笔记来回切换困住的同学发现它。觉得好用，也欢迎分享给一起上课的朋友；遇到问题或有新想法，欢迎在 [Issues](https://github.com/yunmyuki/coursebook/issues) 告诉我。
+
+谢谢你的支持，一起把课程讲义，变成可以读、查、问、记的双语学习空间。
