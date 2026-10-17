@@ -6,7 +6,7 @@
 
 PDF · PPTX · PPT → 完整原文 · 对照译文 · 原图表 · 按需 AI 助手
 
-[下载 Windows 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1) · [下载 Mac 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1-macos.1) · [快速开始](docs/quickstart.md) · [发布说明](docs/release-notes.md) · [反馈问题](https://github.com/yunmyuki/coursebook/issues)
+[下载 Windows 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.2) · [下载 Mac 版](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.2-macos.1) · [快速开始](docs/quickstart.md) · [发布说明](docs/release-notes.md) · [反馈问题](https://github.com/yunmyuki/coursebook/issues)
 
 ![Windows x64](https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square)
 ![MIT License](https://img.shields.io/badge/license-MIT-5645D4?style=flat-square)
@@ -28,29 +28,29 @@ Coursebook 是一款本地课程编译与阅读应用。导入一门课的多份
 
 ## 下载
 
-当前版本：**2.2.1**。提供 Windows 10/11 x64、macOS Apple Silicon 与 Intel 版本。精确文件大小与校验值见对应 Release 附件。
+当前版本：**2.2.2**。提供 Windows 10/11 x64、macOS Apple Silicon 与 Intel 版本。精确文件大小与校验值见对应 Release 附件。
 
 | 发行包 | 适合你，如果… | 下载 |
 | --- | --- | --- |
-| 完整版 | 需要直接处理 PDF、PPTX、PPT，无需另装转换工具 | [Windows x64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1/Coursebook-Windows-x64.zip) |
-| 轻量版 | 主要处理 PDF，或电脑已安装 LibreOffice | [Windows x64 Lite ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1/Coursebook-Windows-x64-Lite.zip) |
-| Office 组件 | 想为轻量版补充 PPT/PPTX 转换能力 | [Office ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1/Coursebook-Office-Windows-x64.zip) |
-| 源码 | 希望自行运行、修改或构建 | [Source ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1/Coursebook-Source.zip) |
-| Mac · Apple Silicon | M 系列芯片，macOS 14 或更高 | [Coursebook arm64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1-macos.1/Coursebook-macOS-arm64.zip) |
-| Mac · Intel | Intel 芯片，macOS 15 或更高 | [Coursebook x86_64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1-macos.1/Coursebook-macOS-x86_64.zip) |
+| 完整版 | 需要直接处理 PDF、PPTX、PPT，无需另装转换工具 | [Windows x64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2/Coursebook-Windows-x64.zip) |
+| 轻量版 | 主要处理 PDF，或电脑已安装 LibreOffice | [Windows x64 Lite ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2/Coursebook-Windows-x64-Lite.zip) |
+| Office 组件 | 想为轻量版补充 PPT/PPTX 转换能力 | [Office ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2/Coursebook-Office-Windows-x64.zip) |
+| 源码 | 希望自行运行、修改或构建 | [Source ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2/Coursebook-Source.zip) |
+| Mac · Apple Silicon | M 系列芯片，macOS 14 或更高 | [Coursebook arm64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2-macos.1/Coursebook-macOS-arm64.zip) |
+| Mac · Intel | Intel 芯片，macOS 15 或更高 | [Coursebook x86_64 ZIP](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2-macos.1/Coursebook-macOS-x86_64.zip) |
 
-Mac 版解压后将 **Coursebook.app** 拖到「应用程序」。内置版面模型与运行时；PPT/PPTX 渲染需另装 LibreOffice。首版尚未取得 Apple Developer ID 签名和公证，首次打开方式、钥匙串及数据目录见 [Mac 安装说明](docs/macos.md)。Mac 对应源码可从 [Mac Release](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1-macos.1) 的 Source code 附件下载。
+Mac 版解压后将 **Coursebook.app** 拖到「应用程序」。内置版面模型与运行时；PPT/PPTX 渲染需另装 LibreOffice。首版尚未取得 Apple Developer ID 签名和公证，首次打开方式、钥匙串及数据目录见 [Mac 安装说明](docs/macos.md)。Mac 对应源码可从 [Mac Release](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.2-macos.1) 的 Source code 附件下载。
 
 
-想先体验阅读？[下载自制示例课程](https://github.com/yunmyuki/coursebook/releases/download/v2.2.1/Coursebook-Demo.zip)，直接解压打开 `index.html`，或在应用中导入。示例译文为人工编写，无需 API 即可体验阅读。
+想先体验阅读？[下载自制示例课程](https://github.com/yunmyuki/coursebook/releases/download/v2.2.2/Coursebook-Demo.zip)，直接解压打开 `index.html`，或在应用中导入。示例译文为人工编写，无需 API 即可体验阅读。
 
 解压整个文件夹，双击 `Coursebook.exe`。两个 Windows 包均自带 Python、ONNX CPU 运行时和 PP-DocLayoutV3 权重，首次使用无需另下载版面模型；请保留 `_internal` 文件夹。窗口优先使用系统 WebView2，无法启动时会在默认浏览器打开本地界面。
 
-本次更新：新增可跳过的新手教程，帮助配置模型与 API Key；重复页码、固定页眉页脚可预览后批量隐藏并随时恢复；可直接编辑原文、译文、表格单元与公式，保留历史和笔记关联。只改原文时，旧译文标为待更新。已有课程与自定义模型配置保留。
+本次更新：简单配置分为「OCR 识别」和「翻译与助手」两组，分别测试、保存；新增从注册账号到获取 Key 的详细配置教程，首次使用自动弹出引导。旧课程、笔记与自定义连接保留。Windows 暂未签名，SignPath Foundation 申请审核中。
 
 ## 从讲义到学习空间
 
-1. **连接模型。** 默认采用本地版面分析 + 云端区域 OCR，预选硅基 PaddleOCR-VL-1.5；翻译与 AI 助手分别配置文本模型，可使用同一服务商的 API Key。也可切换完整解析服务或通用视觉模型。
+1. **连接模型。** 默认采用本地版面分析 + 云端区域 OCR，预选硅基 PaddleOCR-VL-1.5；简单配置中翻译与 AI 助手共用另一文本模型，可使用同一服务商的 API Key。也可切换完整解析服务或通用视觉模型。
 2. **导入课程。** 拖入多个 PDF / PPTX / PPT，按文件顺序组织讲义。每页先在本机分析版面，可靠文字层直接复用，其余区域按需识别，保留原图、页码与位置。
 3. **检查结果。** 对照原页复核疑点，修改原文或译文。保留原始识别文本与修改记录；暂停后可从缓存继续。
 4. **阅读和提问。** 搜索内容、切换双语布局、选段向助手提问、记录笔记和高亮。
@@ -110,7 +110,7 @@ Mac 版解压后将 **Coursebook.app** 拖到「应用程序」。内置版面�
 
 ## 模型和联网搜索
 
-可配置兼容接口，包括 OpenAI 兼容格式与 Anthropic 格式。默认解析使用专用区域 OCR，翻译和学习助手使用独立文本模型；简单配置可改为一个通用视觉模型共用连接。提供硅基流动、通义、DeepSeek 等连接预设，实际可用性取决于服务商、模型能力和账户权限。
+可配置兼容接口，包括 OpenAI 兼容格式与 Anthropic 格式。简单配置分为「OCR 识别」和「翻译与助手」两组，分别填写模型与连接；同一服务商可以共用 Key。高级配置可进一步分开翻译和助手。首次使用会自动打开教程，逐步引导注册服务商账号、获取 Key、选择模型并测试连接。详见 [API 配置教程](docs/quickstart.md#第一次配置-api从注册到测试)。提供硅基流动、通义、DeepSeek 等连接预设，实际可用性取决于服务商、模型能力和账户权限。
 
 联网搜索是可选功能，支持**博查、百度千帆、Tavily、Exa、Brave、SerpApi**；SerpApi 可选择 Google、Bing、百度引擎。各服务独立保存密钥，可先测试连接。Google/Bing 搜索通过 SerpApi 接入，不表示支持已经停用或限制新注册的旧版官方搜索 API。
 

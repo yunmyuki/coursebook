@@ -29,7 +29,7 @@ def main():
         files += [str(package),str(folder/('quality-'+arch+'.json')),str(folder/('SHA256SUMS-'+arch+'.txt'))]
         summaries.append(f"- {arch}: {report['bytes']/1024**2:.1f} MiB；macOS {report['macOS']} 原生构建、窗口、钥匙串、模型推理与导出测试通过。")
     notes=Path('release/mac-publish/notes.md')
-    notes.write_text('''Coursebook macOS 发行版，内置本地版面模型与 Python 运行时。本版改善源文件高清区域裁剪、跨行段落、多栏阅读顺序与原生表格定位；已完成课程不会自动重新付费识别。
+    notes.write_text('''Coursebook macOS 发行版，内置本地版面模型与 Python 运行时。本版将简单配置拆分为 OCR 识别与翻译/助手两组，补齐注册账号、创建 API Key、选择模型和测试连接的教程，首次使用自动打开引导。旧课程、笔记与自定义连接保留。
 
 - Apple Silicon（M 系列）下载 `Coursebook-macOS-arm64.zip`，支持 macOS 14+。
 - Intel 下载 `Coursebook-macOS-x86_64.zip`，支持 macOS 15+。

@@ -50,6 +50,10 @@ def validate_profile(p):
 class Store:
     def __init__(self,root=None):
         self.root=Path(root or data_root());self.root.mkdir(parents=True,exist_ok=True);self.lock=threading.RLock()
+    @property
+    def workspace_id(self):
+        import hashlib
+        return hashlib.sha256(os.path.normcase(str(self.root.resolve())).encode('utf-8')).hexdigest()[:24]
     def read(self,name,default):
         p=self.root/name
         if not p.exists():return copy.deepcopy(default)
@@ -59,7 +63,7 @@ class Store:
         cfg=local_settings();key=cfg.get('SILICONFLOW_API_KEY','')
         common={'provider':'siliconflow','baseUrl':cfg.get('SILICONFLOW_BASE_URL','https://api.siliconflow.cn/v1'),'model':cfg.get('COURSE_MODEL','Qwen/Qwen3.8-27B'),'engine':'vision','apiKey':key}
         parser={**common,'model':'PaddlePaddle/PaddleOCR-VL-1.5','engine':'local-layout-ocr','ocrFlavor':'paddle','maxOcrRegions':32}
-        return {'version':2,'settingsMode':'advanced','profiles':{'parse':parser,'translation':{**common,'inherit':False},'explanation':{**common,'inherit':False}},'workers':3,'parseMode':'adaptive','requestLimit':1000}
+        return {'version':2,'settingsMode':'simple','profiles':{'parse':parser,'translation':{**common,'inherit':False},'explanation':{**common,'inherit':False}},'workers':3,'parseMode':'adaptive','requestLimit':1000}
     def settings(self,public=False):
         with self.lock:
             value=self.read('settings.json',None)
@@ -69,6 +73,13 @@ class Store:
                     try:p['apiKey']=protect(p.pop('encryptedKey'),True) if p.get('encryptedKey') else ''
                     except ValueError:p['apiKey']='';p['keyUnavailable']=True
             value.setdefault('settingsMode','simple' if all(value['profiles'].get(r,{}).get('inherit') for r in ('translation','explanation')) else 'advanced')
+            # Migrate the old one-model simple mode without losing its decrypted key.
+            # New simple mode always keeps OCR separate from the shared text model.
+            if value['settingsMode']=='simple':
+                ps=value['profiles']
+                if ps['translation'].get('inherit'):
+                    ps['translation']={**copy.deepcopy(ps['parse']),'inherit':False}
+                ps['explanation']=copy.deepcopy(ps['translation'])
             value.setdefault('requestLimit',1000)
             raw=value.get('webSearch',{});provider=validate_provider(raw.get('provider','bocha'))
             saved=raw.get('profiles',{provider:raw});search={'provider':provider,'profiles':{}}
@@ -87,6 +98,12 @@ class Store:
             return value
     def save_settings(self,incoming):
         with self.lock:
+            incoming=copy.deepcopy(incoming)
+            if incoming.get('settingsMode')=='simple':
+                ps=incoming.get('profiles',{})
+                if not isinstance(ps,dict) or not isinstance(ps.get('translation'),dict):raise ValueError('请分别配置 OCR 模型和翻译与助手模型。')
+                if ps['translation'].get('inherit'):raise ValueError('简单配置的文本模型不能继承 OCR 连接，请单独填写。')
+                ps['explanation']=copy.deepcopy(ps['translation'])
             old=self.settings();result={'version':2,'settingsMode':incoming.get('settingsMode','advanced'),'profiles':{},'workers':incoming.get('workers',3),'parseMode':incoming.get('parseMode','adaptive'),'requestLimit':incoming.get('requestLimit',1000)}
             if result['settingsMode'] not in ('simple','advanced'):raise ValueError('设置模式无效。')
             if type(result['requestLimit']) is not int or not 1<=result['requestLimit']<=10000:raise ValueError('请求上限须为 1–10000。')
@@ -104,6 +121,11 @@ class Store:
                 if not key and not p.pop('clearKey',False) and p.get('baseUrl')==prior.get('baseUrl'):key=prior.get('apiKey','')
                 if key:p['encryptedKey']=protect(key)
                 result['profiles'][role]=p
+            if result['settingsMode']=='simple':
+                text=result['profiles']['translation']
+                if text.get('engine','vision')!='vision' or re.search(r'ocr',text.get('model',''),re.I):raise ValueError('翻译与助手需要文本对话模型，不能使用专用 OCR 模型。')
+                # Copy the saved encrypted text key, never the previous assistant key.
+                result['profiles']['explanation']=copy.deepcopy(text)
             search=incoming.get('webSearch',{})
             if not isinstance(search,dict):raise ValueError('搜索配置格式无效。')
             provider=validate_provider(search.get('provider',old['webSearch']['provider']))

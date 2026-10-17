@@ -9,3 +9,7 @@
 #search-engine-field[hidden]{display:none!important}
 
 .onboarding-dialog{width:min(660px,94vw);max-height:90vh;padding:28px;border:1px solid #e5e4e1;border-radius:14px;color:#242424}.onboarding-dialog p,.onboarding-dialog li{line-height:1.8}.onboarding-dialog li{margin-bottom:8px}.guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.guide-grid p{background:#f7f7f6;border-radius:8px;padding:14px;margin:0}.guide-grid strong{display:block;font-size:22px;color:#5645d4}.guide-fields dt{font-weight:600;margin-top:12px}.guide-fields dd{margin:4px 0;color:#555}.guide-settings-note{background:#f3f0ff;border:1px solid #e0daf8;padding:12px;border-radius:8px;font-size:13px;line-height:1.7;margin-bottom:14px}.onboarding-dialog .dialog-footer{flex-wrap:wrap}@media(max-width:600px){.onboarding-dialog{padding:18px}.guide-grid{grid-template-columns:1fr}}
+
+.local-label summary{cursor:pointer}.local-label p{margin:8px 0;overflow-wrap:anywhere;color:var(--muted)}
+
+.api-setup-help{color:var(--ink);line-height:1.8}.api-setup-steps{padding-left:22px}.api-setup-steps li{margin:10px 0}.api-setup-help a,#guide-body a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}.api-setup-help code,#guide-body code{overflow-wrap:anywhere;font-size:.9em}.onboarding-dialog .dialog-footer{position:sticky;bottom:-28px;background:#fff;padding-bottom:12px}.settings-dialog .dialog-footer{position:sticky;bottom:-24px;background:#fff;padding-bottom:12px}

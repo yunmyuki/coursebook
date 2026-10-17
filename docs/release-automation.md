@@ -10,10 +10,10 @@ Windows x64、Python 3.12、Node、Git、已登录的 GitHub CLI；按 developme
 
 ```powershell
 # 仅检验与打包
-python tools/automate_release.py --base-version 2.2.0
+python tools/automate_release.py --base-version 2.2.1
 
 # 检验、打包并发布 Windows + 两种 macOS 架构
-python tools/automate_release.py --base-version 2.2.0 --publish
+python tools/automate_release.py --base-version 2.2.1 --publish
 
 # 紧凑状态；完整日志不必逐行读取
 python tools/automate_release.py --status
@@ -43,3 +43,15 @@ python tools/automate_release.py --status
 任何发布都需显式 `--publish`。已公开 Release 不覆写；远端 main 或标签偏离准备提交会停止。下载/上传失败保留本地包和远端草稿供续跑。凭据不写入状态文件或日志。
 
 减少 token 来自阶段自动编排、断点与紧凑摘要；不通过跳过成品检查降低消耗。质量记录与 CI 是检查依据，不让模型逐项宣布未经执行的测试成功。
+
+## 2.2.2 起的签名与隐私门禁
+
+`--publish` 默认要求已配置的可信 Windows 代码签名证书，无证书在构建前停止。签名先于压缩，发布前再次验签，并对 ZIP 内 EXE 核对。详见 [签名准备](windows-signing.md)。新增 `tools/audit_release_privacy.py` 检查所有最终包的私有数据路径并用真实 EXE 在全新工作区启动；`--verify-github` 可核对已发布附件散列。
+
+SignPath 审核期间，本次采用维护者明确选择的未签名发布：
+
+```powershell
+python tools/automate_release.py --base-version 2.2.1 --publish --allow-unsigned
+```
+
+此开关不跳过成品测试、隐私扫描、远端散列或源码 CI。发布前验证 EXE 状态为 NotSigned，并要求发布说明和质量记录披露未签名；不能与 `--require-signing` 同用。证书就绪后去掉此开关。

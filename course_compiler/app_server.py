@@ -26,7 +26,7 @@ class AppHandler(Handler):
         path=urllib.parse.urlsplit(self.path).path
         try:
             if path in ('/','/app','/compiler'):return self.serve_file(resource_root()/'web','desktop.html')
-            if path=='/api/status':return self.json_response(200,{'token':TOKEN,'version':__version__,'dataPath':str(self.store.root),'converterAvailable':bool(locate_converter()),'files':self.files(),'courses':self.store.courses(),'settings':self.store.settings(public=True)})
+            if path=='/api/status':return self.json_response(200,{'token':TOKEN,'version':__version__,'dataPath':str(self.store.root),'workspaceId':self.store.workspace_id,'converterAvailable':bool(locate_converter()),'files':self.files(),'courses':self.store.courses(),'settings':self.store.settings(public=True)})
             if path=='/api/settings':return self.json_response(200,self.store.settings(public=True))
             if path=='/api/onboarding':return self.json_response(200,self.store.read('onboarding.json',{'state':'new','step':0}))
             if path.startswith('/api/cleanup/'):

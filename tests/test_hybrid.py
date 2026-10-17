@@ -28,7 +28,7 @@ class HybridTests(unittest.TestCase):
         from course_compiler.storage import Store
         with patch('course_compiler.storage.local_settings',return_value={}):
             store=Store(self.root);settings=store.settings();profiles=store.profiles()
-        self.assertEqual(settings['settingsMode'],'advanced')
+        self.assertEqual(settings['settingsMode'],'simple')
         self.assertEqual(profiles['parse']['engine'],'local-layout-ocr')
         self.assertEqual(profiles['parse']['model'],'PaddlePaddle/PaddleOCR-VL-1.5')
         self.assertEqual(profiles['parse']['ocrFlavor'],'paddle')

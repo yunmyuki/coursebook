@@ -19,9 +19,9 @@ OUT=ROOT/'release'/__version__
 APP=OUT/'app/Coursebook'
 OFFICE=APP/'_internal/office'
 REPOSITORY='https://github.com/yunmyuki/coursebook'
-DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md','hybrid-parsing-2026-09-30.md','hybrid-validation-2026-09-30.md','macos.md','iteration-onboarding-cleanup-editing.md','parser-precision.md','release-automation.md')
+DOCS=('quickstart.md','privacy.md','release-notes.md','release-quality.md','development.md','third-party.md','hybrid-parsing-2026-09-30.md','hybrid-validation-2026-09-30.md','macos.md','iteration-onboarding-cleanup-editing.md','parser-precision.md','release-automation.md','windows-signing.md')
 SOURCE_FILES=('README.md','LICENSE','.gitignore','requirements.txt','requirements-desktop.txt','requirements-lock.txt','requirements-dev.txt','requirements-layout.txt','requirements-macos.txt','desktop_main.py','package.json')
-SOURCE_TOOLS=('build_desktop.py','test_windows_release.py','build_macos.py','test_macos_release.py','publish_macos.py','assemble_release.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py','benchmark_hybrid.py','benchmark_parser_precision.py','automate_release.py','release_support.py')
+SOURCE_TOOLS=('build_desktop.py','test_windows_release.py','build_macos.py','test_macos_release.py','publish_macos.py','assemble_release.py','create_release.py','release_demo.py','release_browser.cjs','publish_release.py','benchmark_hybrid.py','benchmark_parser_precision.py','automate_release.py','release_support.py','sign_windows.py','audit_release_privacy.py')
 FORBIDDEN={'.env','.env.local','settings.json','library.json','course.json','course-data.js'}
 
 def digest(path):

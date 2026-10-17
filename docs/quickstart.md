@@ -4,14 +4,31 @@ Mac 用户请先阅读 [macOS 安装说明](macos.md)。以下安装步骤对应
 
 ## 安装与首次启动
 
-1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.1) 下载 Windows x64 完整版或轻量版。
+1. 从 [GitHub Releases](https://github.com/yunmyuki/coursebook/releases/tag/v2.2.2) 下载 Windows x64 完整版或轻量版。
 2. 用 Windows 自带解压功能解压整个 ZIP。不要在压缩包中直接启动，不要单独移动 EXE。
 3. 双击 `Coursebook.exe`。默认数据保存在 `%LOCALAPPDATA%\Course Compiler`，与程序文件夹分离。
-4. 跟随首次启动教程，在「模型与设置」填写 API 地址、模型名与 API Key，再主动测试连接。教程可以跳过，侧栏「使用教程」可重新查看。
+4. 首次使用自动弹出教程（即使已经有课程或配置了 Key），跟随教程，在「模型与设置」填写 API 地址、模型名与 API Key，再主动测试连接。教程可以跳过，侧栏「使用教程」可重新查看。
 
-默认使用本地 PP-DocLayoutV3 分析版面、云端 PaddleOCR-VL-1.5 识别区域。两个 Windows 包均包含版面模型与 CPU 运行时，无需 Python 或单独下载权重。翻译与 AI 助手预选 Qwen 文本模型，请分别填写 API Key；同一服务商可以使用同一个 Key。模型组件应显示“已就绪”。
+默认使用本地 PP-DocLayoutV3 分析版面、云端 PaddleOCR-VL-1.5 识别区域。两个 Windows 包均包含版面模型与 CPU 运行时，无需 Python 或单独下载权重。简单配置提供两组连接：OCR 识别使用 PaddleOCR，翻译与 AI 助手共用 Qwen 文本模型；请在两组中分别填写 API Key，同一服务商可以填写同一个 Key。模型组件应显示“已就绪”。
 
-升级时保留原有自定义配置。希望启用新模式，可在「高级配置 → 文档解析」选择「本地版面 · 硅基 OCR（默认）」；翻译和助手不可继承专用 OCR 模型。简单配置仍可共用一个支持图片与文字的通用视觉模型。
+升级时保留原有自定义配置。希望启用新模式，可在「高级配置 → 文档解析」选择「本地版面 · 硅基 OCR（默认）」；翻译和助手不可继承专用 OCR 模型。简单配置也将 OCR 与文本模型分开；切换模式不会替换你的解析连接。旧的单模型简单配置会保留原连接，建议手动将 OCR 组换成专用 OCR 预设。
+
+## 第一次配置 API：从注册到测试
+
+推荐新用户从 **硅基流动** 开始：同一个账号可以调用 OCR 和文本模型，配置较容易。**不是广告**，也没有要求使用指定服务商。
+
+API 地址是 Coursebook 请求模型的入口，模型名决定调用哪个模型，API Key 则是你的调用凭证，类似密码。你不需要写代码，也不需要自己部署模型。
+
+1. 打开 [硅基流动控制台](https://cloud.siliconflow.cn/)，注册、登录，并按平台要求完成实名认证。
+2. 进入 [API 密钥](https://cloud.siliconflow.cn/account/ak)，点击「新建 API 密钥」，备注可填 Coursebook，复制完整 Key。不要将 Key 发给别人或包含在公开截图中。
+3. 打开 Coursebook「模型与设置 → 简单配置 → 1 · OCR 识别」，点击「填入硅基 OCR 预设」。API 地址为 `https://api.siliconflow.cn/v1`，模型名为 `PaddlePaddle/PaddleOCR-VL-1.5`，粘贴自己的 Key。不要填写控制台网址或旧的 `PaddlePaddle/PaddleOCR-VL`。
+4. 切换到「2 · 翻译与助手」，点击「硅基流动 · Qwen」，填入同一个 Key。到 [模型广场](https://cloud.siliconflow.cn/models) 确认预设模型可用与价格，或复制其他文本对话模型的完整 ID。这一组不能填写 OCR 模型；也可以选择其他服务商并使用对应地址和 Key。
+5. 两组分别点击「测试连接」，都成功后点击「保存设置」。OCR 组的本地版面组件还需显示「已就绪」；缺少时按提示下载或导入。
+6. 先用几页讲义试用，再处理整门课程。高级配置可以为翻译和助手分别选模型；联网搜索可稍后配置。
+
+**关于费用：**截至 2026-10-17 查询，官方价格页列出的 PaddleOCR-VL-1.5 输入、输出为免费。免费仅指该模型的调用，不代表所有 OCR、翻译或问答免费，也不保证永久免费或不限速。文本模型通常按用量收费，使用前请查看 [实时价格](https://siliconflow.cn/pricing) 与账户额度。点击测试也会消耗少量请求；Coursebook 不会自动充值。
+
+常见错误：401/403 检查 Key、实名认证和权限；404 检查 API 地址与完整模型名；429 检查限流或额度，稍后重试或降低并发。地址填错不能靠充值解决。可对照 [官方快速上手](https://docs.siliconflow.cn/docs/userguide/quickstart) 操作。
 
 ## 轻量版如何处理 PPT
 

@@ -40,14 +40,17 @@ def isolated_source_copy(source,destination):
     return destination
 
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--publish',action='store_true');ap.add_argument('--base-version',default='2.2.0');ap.add_argument('--status',action='store_true');args=ap.parse_args()
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--publish',action='store_true');ap.add_argument('--require-signing',action='store_true');ap.add_argument('--allow-unsigned',action='store_true',help='Explicitly publish an unsigned Windows build while signing is pending');ap.add_argument('--base-version',default='2.2.1');ap.add_argument('--status',action='store_true');args=ap.parse_args()
+    if args.require_signing and args.allow_unsigned:ap.error('Signing and unsigned publication are mutually exclusive')
     if not re.fullmatch(r'\d+\.\d+\.\d+',args.base_version):ap.error('Invalid base version')
     state=json.loads(STATE.read_text('utf-8')) if STATE.exists() else {'version':__version__,'steps':{}}
     if args.status:
         print(json.dumps({k:v for k,v in state.items() if k!='steps'},ensure_ascii=False));print('Passed stages: '+', '.join(state['steps']));return
     if sys.version_info[:2]!=(3,12):raise RuntimeError('Release runtime must be Python 3.12')
     if json.loads((ROOT/'package.json').read_text())['version']!=__version__:raise RuntimeError('Version mismatch')
-    sig=input_signature()
+    signed=args.require_signing or (args.publish and not args.allow_unsigned)
+    mode=('signed:'+os.environ.get('COURSEBOOK_SIGN_CERT_SHA1','')) if signed else 'unsigned-explicit' if args.allow_unsigned else 'unsigned-local'
+    sig=hashlib.sha256((input_signature()+mode).encode()).hexdigest()
     if state.get('input')!=sig:
         if state.get('published'):raise RuntimeError('Published version is immutable; bump version first')
         state={'version':__version__,'input':sig,'steps':{}}
@@ -88,11 +91,12 @@ def main():
 - GitHub 发布门禁核对实际远端附件大小与 SHA256、同一提交的源码 CI；失败则保留草稿。
 - macOS arm64 / x86_64 在 GitHub 原生主机分别构建测试。独立 Mac Release 的 quality 报告及构建日志是实际验收依据。
 
-测试使用隔离夹具与模拟服务，不调用真实付费 OCR，不代表所有模型、讲义或硬件的准确率。Windows 未 Authenticode 签名，Mac 未 Developer ID 签名或公证。
+测试使用隔离夹具与模拟服务，不调用真实付费 OCR，不代表所有模型、讲义或硬件的准确率。Windows {'已通过可信 Authenticode 签名与时间戳验证' if signed else '未签名；维护者已明确选择在 SignPath 审核期间发布未签名版本' if args.allow_unsigned else '本地测试包未签名，不可用于正式发布'}；Mac 未 Developer ID 签名或公证。
 
-本轮改善源文件高清区域裁剪、跨行段落、多栏阅读顺序、原生表格物理定位和缓存兼容。算法说明见 [解析精度改进](parser-precision.md)。
+本轮将简单配置拆分为 OCR 与文本模型，补齐 API 获取教程并确保首次使用弹出引导。旧连接与加密密钥迁移、独立模型测试、文本模型共用与窄屏教程均纳入验收。
 ''',encoding='utf-8')
     try:
+        if signed:command('signing-preflight',[sys.executable,'tools/sign_windows.py','--preflight'])
         if args.publish:
             def preflight():
                 auth=github_env();repo=gh_json(auth,'api','repos/'+release.REPOSITORY.split('github.com/')[1]);assert repo['permissions']['push']
@@ -105,8 +109,11 @@ def main():
             command('reader-tests',['node','tests/reader.test.cjs'])
             save(OUT/'javascript-tests.json',{'ok':True})
         step('javascript-tests',js,[OUT/'javascript-tests.json'])
-        step('build',lambda:command('build',[sys.executable,'tools/build_desktop.py']),[OUT/'app/Coursebook/Coursebook.exe'])
+        def build():
+            command('build',[sys.executable,'tools/build_desktop.py']);save(OUT/'build-complete.json',{'ok':True,'input':sig})
+        step('build',build,[OUT/'build-complete.json'])
         step('prepare',lambda:command('prepare',[sys.executable,'tools/create_release.py','prepare','--office-archive',str(ROOT/'release'/args.base_version/'Coursebook-Office-Windows-x64.zip')]),[OUT/'app/Coursebook/components.json'])
+        if signed:step('signing',lambda:command('signing',[sys.executable,'tools/sign_windows.py']),[OUT/'windows-signature.json',OUT/'app/Coursebook/Coursebook.exe'])
         step('demo',lambda:command('demo',[sys.executable,'tools/release_demo.py']),[OUT/'Coursebook-Demo.zip'])
         step('windows-qa',lambda:command('windows-qa',[sys.executable,'tools/test_windows_release.py']),[OUT/p for p in ('exe-self-test.json','exe-window-test.json','browser-smoke.json','new-features-smoke.json')])
         step('quality-record',quality,[ROOT/'docs/release-quality.md'])
@@ -114,12 +121,13 @@ def main():
         step('source-tests',lambda:tests('source-tests',OUT/'github-source'),[OUT/'source-tests.json'])
         step('package',lambda:command('package',[sys.executable,'tools/create_release.py','package']),[OUT/'SHA256SUMS.txt'])
         step('lite-qa',lambda:command('lite-qa',[sys.executable,'tools/test_windows_release.py','--lite']),[OUT/'lite-self-test.json',OUT/'lite-window-test.json'])
+        step('privacy-audit',lambda:command('privacy-audit',[sys.executable,'tools/audit_release_privacy.py']),[OUT/'privacy-audit.json'])
         if args.publish:
             state.update(stage='publish',status='running');save(STATE,state)
             # Publisher performs its own remote checkpoints and hash verification.
-            command('publish',[sys.executable,'tools/publish_release.py','--base-version',args.base_version])
+            command('publish',[sys.executable,'tools/publish_release.py','--base-version',args.base_version]+(['--allow-unsigned'] if args.allow_unsigned else []))
             state.update(published=True,releaseUrl='https://github.com/yunmyuki/coursebook/releases/tag/v'+__version__,macReleaseUrl='https://github.com/yunmyuki/coursebook/releases/tag/v'+__version__+'-macos.1')
-        state.update(status='complete',stage='complete');save(STATE,state);print(json.dumps({'ok':True,'version':__version__,'published':state.get('published',False),'state':str(STATE)}),flush=True)
+        state.pop('error',None);state.update(status='complete',stage='complete');save(STATE,state);print(json.dumps({'ok':True,'version':__version__,'published':state.get('published',False),'state':str(STATE)}),flush=True)
     except Exception as e:
         state.update(status='failed',error=str(e));save(STATE,state);print('FAILED: '+str(e),file=sys.stderr,flush=True);raise SystemExit(1)
 

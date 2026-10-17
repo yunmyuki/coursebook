@@ -306,8 +306,8 @@ def compile_course(paths,output,model=None,workers=4,ai=True,audit=True,explanat
     terms=dict(DEFAULT_TERMS)
     if (cache/'terminology.json').exists():
         terms.update(json.loads((cache/'terminology.json').read_text('utf-8')))
-    course={'schemaVersion':1,'id':'course-'+digest,'title':'Behavioral Finance' if any('fudan' in f['name'].lower() for f in files) else Path(paths[0]).stem,
-            'subtitle':'行为金融学 · Fall semester 2026' if any('fudan' in f['name'].lower() for f in files) else '双语课程讲义',
+    course={'schemaVersion':1,'id':'course-'+digest,'title':Path(paths[0]).stem,
+            'subtitle':'双语课程讲义',
             'compiledAt':datetime.now(timezone.utc).isoformat(),'targetLanguage':'zh-CN','files':files,'explanations':[],
             'terminology':terms,'provenance':{'compiler':'coursebook 1.0','model':model.model if ai else None,'aiEnabled':ai,'visualAuditEnabled':audit}}
     pages=[p for f in files for p in f['pages']]

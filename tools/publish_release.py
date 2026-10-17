@@ -11,13 +11,23 @@ from assemble_release import create
 OUT=ROOT/'release'/__version__;TAG='v'+__version__
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--base-version',required=True);args=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('--base-version',required=True);ap.add_argument('--allow-unsigned',action='store_true');args=ap.parse_args()
     if not re.fullmatch(r'\d+\.\d+\.\d+',args.base_version):ap.error('Invalid base version')
     manifest=json.loads((OUT/'release-manifest.json').read_text('utf-8'))
+    from sign_windows import verify,verify_unsigned
+    import zipfile,hashlib
+    signature=(verify_unsigned if args.allow_unsigned else verify)(OUT/'app/Coursebook/Coursebook.exe')
+    if args.allow_unsigned:
+        for path in (ROOT/'docs/release-notes.md',ROOT/'docs/release-quality.md'):
+            if '未签名' not in path.read_text('utf-8'):raise RuntimeError('Unsigned release must disclose its signing status in notes and quality record')
+    save(OUT/'publication-signature-check.json',signature)
+    for name in ('Coursebook-Windows-x64.zip','Coursebook-Windows-x64-Lite.zip'):
+        with zipfile.ZipFile(OUT/name) as archive:
+            if hashlib.sha256(archive.read('Coursebook/Coursebook.exe')).hexdigest()!=signature['executableSha256']:raise RuntimeError('Packaged EXE does not match verified signed executable')
     for item in manifest['artifacts']:
         p=OUT/item['file']
         if p.stat().st_size!=item['bytes'] or digest(p)!=item['sha256']:raise RuntimeError('Local asset hash mismatch: '+p.name)
-    for name in ('exe-self-test','exe-window-test','browser-smoke','new-features-smoke','python-tests','source-tests','source-privacy-check','javascript-tests','lite-self-test','lite-window-test'):
+    for name in ('exe-self-test','exe-window-test','browser-smoke','new-features-smoke','python-tests','source-tests','source-privacy-check','javascript-tests','lite-self-test','lite-window-test','privacy-audit'):
         if not json.loads((OUT/(name+'.json')).read_text('utf-8-sig'))['ok']:raise RuntimeError('Quality gate: '+name)
     env=github_env();state_path=OUT/'publish-state.json'
     state=json.loads(state_path.read_text()) if state_path.exists() else {}

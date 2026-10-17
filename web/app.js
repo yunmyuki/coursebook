@@ -56,7 +56,8 @@
     if(refs.length||u.contentOrigin==='figure-transcription')figureOrigins.set(u.id,{refs,label:'图中文字提取'});
   }
   C.explanations.forEach(e=>{explanationMap.set(e.id,e);anchorMap.set(e.id,anchorMap.get(e.relatedContentIds[0]));e.relatedContentIds.forEach(id=>related.set(id,[...(related.get(id)||[]),e]));});
-  const storageKey='course-compiler:v1:'+C.id;
+  const hostedReader=location.protocol==='http:'&&/^\/courses\/course-[a-f0-9]{16}\//.test(location.pathname);
+  let storageKey=hostedReader?null:'course-compiler:v1:'+C.id;
   let storageWarning=false;
   const freshState=()=>({version:1,courseId:C.id,notes:[],highlights:[],bookmarks:[],read:[],mode:'bilingual',font:15,lastAnchor:null});
   let state=freshState();
@@ -73,18 +74,22 @@
     normalized.font=[15,17,19].includes(normalized.font)?normalized.font:15;
     return normalized;
   }
-  try { const data=localStorage.getItem(storageKey);if(data)state=validateState(JSON.parse(data)); } catch(e) { storageWarning=true; }
+  if(!hostedReader)try { const data=localStorage.getItem(storageKey);if(data)state=validateState(JSON.parse(data)); } catch(e) { storageWarning=true; }
   let hostToken=null;
-  if(location.protocol==='http:'&&/^\/courses\/course-[a-f0-9]{16}\//.test(location.pathname)){
+  if(hostedReader){
     try{
-      const [status,saved]=await Promise.all([fetch('/api/status').then(r=>r.json()),fetch('/api/learning/'+C.id).then(r=>r.json())]);
+      const read=async url=>{const r=await fetch(url);if(!r.ok)throw Error('本机记录不可用');return r.json();};
+      const [status,saved]=await Promise.all([read('/api/status'),read('/api/learning/'+C.id)]);
       hostToken=status.token;
+      if(/^[a-f0-9]{24}$/.test(status.workspaceId||''))storageKey='coursebook:workspace:'+status.workspaceId+':'+C.id;
       if(hostToken&&$('#learning-storage-label'))$('#learning-storage-label').textContent='个人记录保存在本机文件';
-      if(saved.state&&(!state.savedAt||!saved.state.savedAt||saved.state.savedAt>=state.savedAt))state=validateState(saved.state);
+      // Hosted records belong to this workspace, never to a reused browser port.
+      // Even a newer browser timestamp cannot import another workspace's notes.
+      if(saved.state)state=validateState(saved.state);
     }catch(e){storageWarning=true;}
   }
   let currentChapter, currentPage, notebookTab='assistant', selectedExplanation=null, insightFilter=null, outlineMode='outline', observer, navigationLock=false, noteTarget=null, editingNote=null, selectedRanges=[];
-  function save() { state.savedAt=Date.now();try {localStorage.setItem(storageKey,JSON.stringify(state));} catch(e){storageWarning=true;toast('浏览器无法保存记录，请及时导出备份。');}
+  function save() { state.savedAt=Date.now();try {if(storageKey)localStorage.setItem(storageKey,JSON.stringify(state));} catch(e){storageWarning=true;toast('浏览器无法保存记录，请及时导出备份。');}
     if(hostToken){const body=JSON.stringify(state);fetch('/api/learning/'+C.id,{method:'POST',headers:{'Content-Type':'application/json','X-Course-Token':hostToken},body,keepalive:new Blob([body]).size<60000}).then(r=>{if(!r.ok)throw Error();}).catch(()=>toast('本地文件保存未成功，浏览器副本仍保留，请导出备份。'));}
   }
   function toast(text) { $('#toast').textContent=text;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,3500); }
